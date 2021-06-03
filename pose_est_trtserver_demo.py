@@ -21,11 +21,7 @@ def preprocess(img, width=288, height=384, new_type=np.float32):
 
 def postprocess(results, output_name):
     output_set = set(output_name)
-    if "output" in output_set:
-        heatmaps = results.as_numpy("output")    # batched hrnet
-    elif "2901" in output_set:
-        heatmaps = results.as_numpy("2901")      # no batching hrnet
-    elif "output_2" in output_set:
+    if "output_2" in output_set:
         heatmaps = results.as_numpy("output_2")  # higher hrnet
     return heatmaps
 
@@ -57,7 +53,7 @@ def run_demo_pose_est(media_filename,
     if FLAGS.debug:
         print(f"Running model {FLAGS.model_name}")
 
-    model_info = get_client_and_model_metadata_config()
+    model_info = get_client_and_model_metadata_config(FLAGS)
     if model_info == -1:  # error getting model info
         return -1
     triton_client, model_metadata, model_config = model_info
@@ -86,8 +82,9 @@ def run_demo_pose_est(media_filename,
     filenames.sort()
 
     # all_reqested_images_orig will be [] if FLAGS.frames_save_dir is None
-    image_data, all_reqested_images_orig, fps, fmt, leading_zeros = extract_data_from_media(
-        filenames, w, h)
+    (image_data,
+     all_reqested_images_orig,
+     fps, fmt, leading_zeros) = extract_data_from_media(FLAGS, preprocess, filenames, w, h)
 
     if len(image_data) == 0:
         print("Image data was missing")
@@ -151,6 +148,7 @@ def run_demo_pose_est(media_filename,
                 img_height, img_width, _ = drawn_img.shape
                 keypoints /= [hmap_width, hmap_height]
                 keypoints *= [img_width, img_height]
+
                 PoseEstimator.plot_keypoints(
                     drawn_img, keypoints, (0, 0, 255))
 

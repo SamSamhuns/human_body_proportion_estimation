@@ -92,7 +92,7 @@ class PoseEstimator:
             ignored_kp_idx: set of values in range [0, 16]
                 indexes represented inside dict: IDX_TO_KEYPOINTS
         """
-        ignored_kp_idx_set = set(ignored_kp_idx)
+        ignored_kp_idx_set = set(ignored_kp_idx) if ignored_kp_idx is not None else {}
         for i, (x, y) in enumerate(keypoints):
             if i not in ignored_kp_idx_set:
                 cv2.putText(frame,

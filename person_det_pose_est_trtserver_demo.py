@@ -23,7 +23,7 @@ def postprocess(results, output_name):
     heatmaps = results.as_numpy("ENSEMBLE_OUTPUT_HEATMAPS")
     if len(heatmaps.shape) == 3:
         heatmaps = np.expand_dims(heatmaps, axis=0)
-    return boxes, heatmaps
+    return boxes.copy(), heatmaps
 
 
 def run_demo_pdet_pose(media_filename,
@@ -48,12 +48,14 @@ def run_demo_pdet_pose(media_filename,
     # nose, reye, leye, rear, lear, rshoulder,
     # lshoulder, relbow, lelbow, rwrist, lwrist,
     # rhip, lhip, rknee, lknee, rankle, lankle
-    FLAGS.KEYPOINT_THRES_LIST = [0.65, 0.76, 0.73, 0.56, 0.44, 0.24, 0.13, 0.13, 0.34,
-                                 0.44, 0.38, 0.11, 0.13, 0.24, 0.15, 0.35, 0.30]
+    # FLAGS.KEYPOINT_THRES_LIST = [0.65, 0.76, 0.73, 0.56, 0.44, 0.24, 0.13, 0.13, 0.34,
+    #                              0.44, 0.38, 0.11, 0.13, 0.24, 0.15, 0.35, 0.30]
+    FLAGS.KEYPOINT_THRES_LIST = [0.45, 0.46, 0.45, 0.40, 0.34, 0.10, 0.10, 0.10, 0.10,
+                                 0.24, 0.30, 0.11, 0.10, 0.20, 0.10, 0.25, 0.20]
     start_time = time.time()
 
     if FLAGS.frames_save_dir is not None:
-        FLAGS.frames_save_dir = save_result_dir + f"{FLAGS.model_name}"
+        FLAGS.frames_save_dir = save_result_dir + f"_{FLAGS.model_name}"
         os.makedirs(FLAGS.frames_save_dir, exist_ok=True)
     if FLAGS.debug:
         print(f"Running model {FLAGS.model_name}")
@@ -165,6 +167,7 @@ def run_demo_pdet_pose(media_filename,
 
                 ignored_kp_idx = {i for i, score in enumerate(keypoints_score)
                                   if score < FLAGS.KEYPOINT_THRES_LIST[i]}
+
                 # uncomment to plot bounding boxes
                 plot_one_box([x1, y1, x2, y2], drawn_img,
                              color=color_maps[i % 2])
@@ -174,7 +177,7 @@ def run_demo_pdet_pose(media_filename,
                     drawn_img, keypoints, ignored_kp_idx=ignored_kp_idx, color=color_maps[i % 2])
 
                 # add additional ignored points
-                ignored_kp_idx |= {3, 4, 11, 12}
+                # ignored_kp_idx |= {3, 4, 11, 12}
                 # uncomment to draw keypoints on orig image
                 PoseEstimator.plot_keypoints(
                     drawn_img, keypoints, color_maps[i % 2], ignored_kp_idx=ignored_kp_idx)

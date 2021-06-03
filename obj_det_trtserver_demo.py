@@ -59,12 +59,12 @@ def run_demo_odet(media_filename,
     start_time = time.time()
 
     if FLAGS.frames_save_dir is not None:
-        FLAGS.frames_save_dir = save_result_dir + f"{FLAGS.model_name}"
+        FLAGS.frames_save_dir = save_result_dir + f"_{FLAGS.model_name}"
         os.makedirs(FLAGS.frames_save_dir, exist_ok=True)
     if FLAGS.debug:
         print(f"Running model {FLAGS.model_name}")
 
-    model_info = get_client_and_model_metadata_config()
+    model_info = get_client_and_model_metadata_config(FLAGS)
     if model_info == -1:  # error getting model info
         return -1
     triton_client, model_metadata, model_config = model_info
@@ -93,8 +93,9 @@ def run_demo_odet(media_filename,
     filenames.sort()
 
     # all_reqested_images_orig will be [] if FLAGS.frames_save_dir is None
-    image_data, all_reqested_images_orig, fps, fmt, leading_zeros = extract_data_from_media(
-        filenames, w, h)
+    (image_data,
+     all_reqested_images_orig,
+     fps, fmt, leading_zeros) = extract_data_from_media(FLAGS, preprocess, filenames, w, h)
 
     if len(image_data) == 0:
         print("Image data was missing")
@@ -195,7 +196,7 @@ def run_demo_odet(media_filename,
 def main():
     args = parse_arguments("Person Detection")
     run_demo_odet(args.input_path,
-                  model_name="ensemble_person_det_and_pose",
+                  model_name="edetlite4_modified",
                   inference_mode=args.media_type,
                   det_threshold=args.detection_threshold,
                   save_result_dir=args.output_dir)
