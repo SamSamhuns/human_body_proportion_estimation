@@ -85,14 +85,3 @@ def resize_maintaining_aspect(img, width, height):
         return img
     img = cv2.resize(img, (new_w, new_h))
     return img
-
-
-def count_num_digits(num):
-    """
-    count number of digits in a given number
-    """
-    c = 0
-    while num:
-        num //= 10
-        c += 1
-    return c

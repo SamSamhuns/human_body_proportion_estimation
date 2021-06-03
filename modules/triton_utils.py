@@ -4,8 +4,6 @@ import numpy as np
 import tritonclient.grpc as grpcclient
 from tritonclient.utils import InferenceServerException
 
-from modules.utils import count_num_digits
-
 
 def get_client_and_model_metadata_config(FLAGS):
     try:
@@ -65,7 +63,7 @@ def parse_model_grpc(model_metadata, model_config):
 def extract_data_from_media(FLAGS, preprocess_func, media_filenames, w, h):
     image_data = []
     all_reqested_images_orig = []
-    leading_zeros, fmt, fps = None, None, None
+    fps = None
 
     for filename in media_filenames:
         if FLAGS.inference_mode == "image":
@@ -74,12 +72,8 @@ def extract_data_from_media(FLAGS, preprocess_func, media_filenames, w, h):
                 if isinstance(filename, str) and os.path.isfile(filename):
                     filename = cv2.imread(filename)
                 image_data.append(preprocess_func(filename, w, h))
-                if FLAGS.frames_save_dir is not None:
+                if FLAGS.result_save_dir is not None:
                     all_reqested_images_orig.append(filename)
-
-                # dummy values
-                leading_zeros = count_num_digits(1)
-                fmt = f"0{leading_zeros}d"
                 fps = 1
             except Exception as e:
                 print(f"{e}. Failed to process image {filename}")
@@ -90,10 +84,6 @@ def extract_data_from_media(FLAGS, preprocess_func, media_filenames, w, h):
                 fps = cap.get(cv2.CAP_PROP_FPS) - 10  # reduce orig fps by 10
                 if vid_length > 10000:
                     raise Exception("Video must have less than 10000 frames")
-
-                # for saving frames of videos in correct format
-                leading_zeros = count_num_digits(vid_length + 1)
-                fmt = f"0{leading_zeros}d"
 
                 # check num of channels
                 ret, frame = cap.read()
@@ -107,7 +97,7 @@ def extract_data_from_media(FLAGS, preprocess_func, media_filenames, w, h):
                 while (cap.isOpened()):
                     ret, frame = cap.read()
                     if ret:
-                        if FLAGS.frames_save_dir is not None:
+                        if FLAGS.result_save_dir is not None:
                             orig_vid.append(np.copy(frame))
                         vid.append(preprocess_func(frame, w, h))
                     else:
@@ -118,4 +108,45 @@ def extract_data_from_media(FLAGS, preprocess_func, media_filenames, w, h):
                 cap.release()
             except Exception as e:
                 print(f"{e}. Failed to process video {filename}")
-    return image_data, all_reqested_images_orig, fps, fmt, leading_zeros
+    return image_data, all_reqested_images_orig, fps
+
+
+def get_inference_responses(image_data, FLAGS, trt_inf_data):
+    triton_client, input_name, output_name, dtype, max_batch_size = trt_inf_data
+    responses = []
+    image_idx = 0
+    last_request = False
+    sent_count = 0
+
+    while not last_request:
+        repeated_image_data = []
+
+        for idx in range(FLAGS.batch_size):
+            repeated_image_data.append(image_data[image_idx])
+            image_idx = (image_idx + 1) % len(image_data)
+            if image_idx == 0:
+                last_request = True
+        if max_batch_size > 0:
+            batched_image_data = np.stack(
+                repeated_image_data, axis=0)
+        else:
+            batched_image_data = repeated_image_data[0]
+        if max_batch_size == 0:
+            batched_image_data = np.expand_dims(batched_image_data, 0)
+        # Send request
+        try:
+            for inputs, outputs, model_name, model_version in requestGenerator(
+                    batched_image_data, input_name, output_name, dtype, FLAGS):
+                sent_count += 1
+                responses.append(
+                    triton_client.infer(FLAGS.model_name,
+                                        inputs,
+                                        request_id=str(sent_count),
+                                        model_version=FLAGS.model_version,
+                                        outputs=outputs))
+
+        except InferenceServerException as e:
+            print("inference failed: " + str(e))
+            return -1
+
+    return responses
