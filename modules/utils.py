@@ -15,16 +15,16 @@ def parse_arguments(desc):
     parser.add_argument('-m', '--media_type',
                         default='image', type=str,
                         choices=('image', 'video'),
-                        help='Type of Input: image, video')
+                        help='Type of Input: image, video. Default: image')
     parser.add_argument('-i', '--input_path',
                         default='media/imgs/two people.jpg',  type=str,
                         help='Path to Input: Video File or Image file')
     parser.add_argument('-o', '--output_dir',
                         default='media/output',  type=str,
-                        help='Output directory')
+                        help='Output directory. Default: media/output')
     parser.add_argument('-t', '--detection-threshold',
                         default=0.6,  type=float,
-                        help='Detection Threshold')
+                        help='Detection Threshold. Default: 0.6')
     parser.add_argument('--debug',
                         default=True,
                         help='Debug Mode')

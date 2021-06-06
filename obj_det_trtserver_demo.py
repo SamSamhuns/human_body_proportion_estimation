@@ -1,5 +1,5 @@
-from modules.triton_utils import parse_model_grpc, get_client_and_model_metadata_config
-from modules.triton_utils import extract_data_from_media, get_inference_responses
+from modules.triton_utils import extract_data_from_media, get_client_and_model_metadata_config
+from modules.triton_utils import parse_model_grpc, get_inference_responses
 from modules.utils import Flag_config, parse_arguments, resize_maintaining_aspect, plot_one_box
 
 import numpy as np
@@ -20,10 +20,12 @@ def preprocess(img, width=640, height=480, new_type=np.uint8):
 def postprocess(results, output_name):
     output_set = set(output_name)
 
+    # edetlite4
     if "output_0" in output_set and "output_0" in output_set and "output_0" in output_set:
         det_boxes = results.as_numpy("output_0")[0]
         det_scores = results.as_numpy("output_1")[0]
         det_classes = results.as_numpy("output_2")[0]
+    # edetlite4 modified
     elif "detection_boxes" in output_set and "detection_classes" in output_set and "detection_scores" in output_set:
         det_boxes = results.as_numpy("detection_boxes")
         det_scores = results.as_numpy("detection_scores")
@@ -32,14 +34,15 @@ def postprocess(results, output_name):
     det_scores = [score for score in det_scores if score > FLAGS.det_threshold]
     det_boxes = det_boxes[:len(det_scores)]
     det_classes = det_classes[:len(det_scores)]
-    return det_boxes, det_scores, det_classes
+    return results.as_numpy("filtered_boxes"), det_scores, det_classes
 
 
 def run_demo_odet(media_filename,
                   model_name,
                   inference_mode,
                   det_threshold=0.55,
-                  save_result_dir=None):  # set to None prevent saving
+                  save_result_dir=None,  # set to None prevent saving
+                  debug=True):
     FLAGS.media_filename = media_filename
     FLAGS.model_name = model_name
     FLAGS.inference_mode = inference_mode
@@ -50,7 +53,7 @@ def run_demo_odet(media_filename,
     FLAGS.url = '127.0.0.1:8994'
     FLAGS.verbose = False
     FLAGS.classes = 0  # classes must be set to 0
-    FLAGS.debug = False
+    FLAGS.debug = debug
     FLAGS.batch_size = 1
     FLAGS.fixed_input_width = None
     FLAGS.fixed_input_height = None
@@ -68,6 +71,9 @@ def run_demo_odet(media_filename,
         return -1
     triton_client, model_metadata, model_config = model_info
 
+    # max_batch_size, input_name, output_name, h, w, c, format, dtype = parse_model_grpc(
+    #     model_metadata, model_config.config)
+    # input_name, output_name, format, dtype are all lists
     max_batch_size, input_name, output_name, h, w, c, format, dtype = parse_model_grpc(
         model_metadata, model_config.config)
 
@@ -100,8 +106,14 @@ def run_demo_odet(media_filename,
 
     trt_inf_data = (triton_client, input_name,
                     output_name, dtype, max_batch_size)
+    # if a model with only one input, i.e. edetlite4 is used,
+    # the remaining two inputs are ignored
+    image_data_list = [image_data,
+                       np.array([FLAGS.det_threshold], dtype=np.float32),
+                       np.array([10, 0], dtype=np.float32)]
     # get inference results
-    responses = get_inference_responses(image_data, FLAGS, trt_inf_data)
+    responses = get_inference_responses(
+        image_data_list, FLAGS, trt_inf_data)
 
     if FLAGS.inference_mode == "video" and FLAGS.result_save_dir is not None:
         vid_writer = cv2.VideoWriter(f"{FLAGS.result_save_dir}/res_video.mp4",
@@ -134,7 +146,7 @@ def run_demo_odet(media_filename,
             if FLAGS.result_save_dir is not None:
                 if FLAGS.inference_mode == "image":
                     cv2.imwrite(
-                        f"{FLAGS.result_save_dir}/frame_{counter}.jpg", drawn_img)
+                        f"{FLAGS.result_save_dir}/frame_{str(counter).zfill(6)}.jpg", drawn_img)
                 elif FLAGS.inference_mode == "video":
                     vid_writer.write(drawn_img)
         counter += 1
@@ -150,7 +162,8 @@ def main():
                   model_name="edetlite4_modified",
                   inference_mode=args.media_type,
                   det_threshold=args.detection_threshold,
-                  save_result_dir=args.output_dir)
+                  save_result_dir=args.output_dir,
+                  debug=args.debug)
 
 
 if __name__ == "__main__":

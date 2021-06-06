@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import onnxruntime
 import numpy as np
 import cv2
@@ -56,6 +57,19 @@ class PoseEstimator:
         return heat_maps
 
     @staticmethod
+    def plot_and_save_heatmap(heatmap, save_path) -> None:
+        """
+        args:
+            heatmap: 3d numpy array of shape [channels, height, width]
+            save_path: path where heatmap will be saved
+        """
+        # collapse all heatmaps into one 2d map
+        heatmap_comb = np.sum(heatmap, axis=0)
+        plt.figure(figsize=(20, 10))
+        plt.imshow(heatmap_comb, cmap='hot', interpolation='nearest')
+        plt.savefig(save_path)
+
+    @staticmethod
     def get_max_pred_keypoints_from_heatmap(heatmap):
         """
         args
@@ -83,7 +97,7 @@ class PoseEstimator:
         return keypoints, maxvals
 
     @staticmethod
-    def plot_keypoints(frame, keypoints, color, ignored_kp_idx=None):
+    def plot_keypoints(frame, keypoints, color, ignored_kp_idx=None) -> None:
         """
         args
             frame: numpy ndarray of shape (H,W,C)
@@ -92,7 +106,8 @@ class PoseEstimator:
             ignored_kp_idx: set of values in range [0, 16]
                 indexes represented inside dict: IDX_TO_KEYPOINTS
         """
-        ignored_kp_idx_set = set(ignored_kp_idx) if ignored_kp_idx is not None else {}
+        ignored_kp_idx_set = set(
+            ignored_kp_idx) if ignored_kp_idx is not None else {}
         for i, (x, y) in enumerate(keypoints):
             if i not in ignored_kp_idx_set:
                 cv2.putText(frame,
@@ -108,8 +123,15 @@ class PoseEstimator:
                            thickness=-1)
 
     @staticmethod
-    def draw_skeleton_from_keypoints(frame, keypoints, ignored_kp_idx=None, color=(0, 0, 255), thinkness=1):
-
+    def draw_skeleton_from_keypoints(frame, keypoints, ignored_kp_idx=None, color=(0, 0, 255), thickness=1) -> None:
+        """
+        args:
+            frame: numpy ndarray of shape (H,W,C)
+            keypoints: array of keypoints of shape (N,2)
+            ignored_kp_idx: set containing numerical indexes to ignore [0, 16]
+        """
+        ignored_kp_idx = set(
+            ignored_kp_idx) if ignored_kp_idx is not None else {}
         # from the viewer not the images perspective
         (nose, reye, leye, rear, lear, rshoulder,
          lshoulder, relbow, lelbow, rwrist, lwrist,
@@ -119,7 +141,7 @@ class PoseEstimator:
         uset = {val for key, val in IDX_TO_KEYPOINTS.items()
                 if key not in ignored_kp_idx}
 
-        # check chest and crotch
+        # get chest and crotch
         if {'rshoulder', 'lshoulder'} <= uset:
             chest = (int(rshoulder[0] + lshoulder[0]) // 2,
                      int(rshoulder[1] + lshoulder[1]) // 2)
@@ -131,32 +153,32 @@ class PoseEstimator:
 
         # face
         if {"nose", "reye", "leye"} <= uset:
-            cv2.line(frame, nose, reye, color, thinkness)
-            cv2.line(frame, nose, leye, color, thinkness)
+            cv2.line(frame, nose, reye, color, thickness)
+            cv2.line(frame, nose, leye, color, thickness)
         if {"chest", "nose"} <= uset:
-            cv2.line(frame, chest, nose, color, thinkness)
-
+            cv2.line(frame, chest, nose, color, thickness)
         # torso
         if {"rshoulder", "lshoulder"} <= uset:
-            cv2.line(frame, rshoulder, lshoulder, color, thinkness)
+            cv2.line(frame, rshoulder, lshoulder, color, thickness)
         if {"crotch", "chest"} <= uset:
-            cv2.line(frame, chest, crotch, color, thinkness)
-        if {"crotch", "rknee", "lknee"} <= uset:
-            cv2.line(frame, crotch, rknee, color, thinkness)
-            cv2.line(frame, crotch, lknee, color, thinkness)
-
+            cv2.line(frame, chest, crotch, color, thickness)
         # arms
         if {"rshoulder", "relbow"} <= uset:
-            cv2.line(frame, rshoulder, relbow, color, thinkness)
+            cv2.line(frame, rshoulder, relbow, color, thickness)
         if {"lshoulder", "lelbow"} <= uset:
-            cv2.line(frame, lshoulder, lelbow, color, thinkness)
+            cv2.line(frame, lshoulder, lelbow, color, thickness)
         if {"rwrist", "relbow"} <= uset:
-            cv2.line(frame, relbow, rwrist, color, thinkness)
+            cv2.line(frame, relbow, rwrist, color, thickness)
         if {"lwrist", "lelbow"} <= uset:
-            cv2.line(frame, lelbow, lwrist, color, thinkness)
-
+            cv2.line(frame, lelbow, lwrist, color, thickness)
         # legs
+        if {"lhip", "rhip"} <= uset:
+            cv2.line(frame, lhip, rhip, color, thickness)
+        if {"lhip", "lknee"} <= uset:
+            cv2.line(frame, lhip, lknee, color, thickness)
+        if {"rhip", "rknee"} <= uset:
+            cv2.line(frame, rhip, rknee, color, thickness)
         if {"lankle", "lknee"} <= uset:
-            cv2.line(frame, lknee, lankle, color, thinkness)
+            cv2.line(frame, lknee, lankle, color, thickness)
         if {"rankle", "rknee"} <= uset:
-            cv2.line(frame, rknee, rankle, color, thinkness)
+            cv2.line(frame, rknee, rankle, color, thickness)

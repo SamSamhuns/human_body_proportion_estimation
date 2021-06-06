@@ -3,9 +3,7 @@ from modules.triton_utils import get_inference_responses, extract_data_from_medi
 from modules.utils import Flag_config, parse_arguments, resize_maintaining_aspect, plot_one_box
 from modules.pose_estimator import PoseEstimator
 
-from tritonclient.utils import InferenceServerException
 import numpy as np
-import subprocess
 import time
 import cv2
 import os
@@ -30,7 +28,8 @@ def run_demo_pdet_pose(media_filename,
                        model_name,
                        inference_mode='video',
                        det_threshold=0.55,
-                       save_result_dir=None):  # set to None prevent saving
+                       save_result_dir=None,  # set to None prevent saving
+                       debug=True):
     FLAGS.media_filename = media_filename
     FLAGS.model_name = model_name
     FLAGS.inference_mode = inference_mode
@@ -41,17 +40,18 @@ def run_demo_pdet_pose(media_filename,
     FLAGS.url = '127.0.0.1:8994'
     FLAGS.verbose = False
     FLAGS.classes = 0  # classes must be set to 0
-    FLAGS.debug = True
+    FLAGS.debug = debug
     FLAGS.batch_size = 1
-    FLAGS.fixed_input_width = 512
-    FLAGS.fixed_input_height = 512
+    # if model in_size are dynamic and below set to None, no resizing of original input is done
+    FLAGS.fixed_input_width = None
+    FLAGS.fixed_input_height = None
     # nose, reye, leye, rear, lear, rshoulder,
     # lshoulder, relbow, lelbow, rwrist, lwrist,
     # rhip, lhip, rknee, lknee, rankle, lankle
     # FLAGS.KEYPOINT_THRES_LIST = [0.65, 0.76, 0.73, 0.56, 0.44, 0.24, 0.13, 0.13, 0.34,
     #                              0.44, 0.38, 0.11, 0.13, 0.24, 0.15, 0.35, 0.30]
     FLAGS.KEYPOINT_THRES_LIST = [0.45, 0.46, 0.45, 0.40, 0.34, 0.10, 0.10, 0.10, 0.10,
-                                 0.24, 0.30, 0.11, 0.10, 0.20, 0.10, 0.25, 0.20]
+                                 0.24, 0.30, 0.11, 0.10, 0.15, 0.10, 0.25, 0.20]
     start_time = time.time()
 
     if FLAGS.result_save_dir is not None:
@@ -74,7 +74,6 @@ def run_demo_pdet_pose(media_filename,
         h = FLAGS.fixed_input_height
     if w == -1:
         w = FLAGS.fixed_input_width
-    w, h = None, None  # if set to None, no resizing of original input is done
 
     filenames = []
     if isinstance(FLAGS.media_filename, str) and os.path.isdir(FLAGS.media_filename):
@@ -99,8 +98,11 @@ def run_demo_pdet_pose(media_filename,
 
     trt_inf_data = (triton_client, input_name,
                     output_name, dtype, max_batch_size)
+    image_data_list = [image_data,
+                       np.array([FLAGS.det_threshold], dtype=np.float32),
+                       np.array([10, 0], dtype=np.float32)]
     # get inference results
-    responses = get_inference_responses(image_data, FLAGS, trt_inf_data)
+    responses = get_inference_responses(image_data_list, FLAGS, trt_inf_data)
 
     if FLAGS.inference_mode == "video" and FLAGS.result_save_dir is not None:
         vid_writer = cv2.VideoWriter(f"{FLAGS.result_save_dir}/res_video.mp4",
@@ -123,6 +125,8 @@ def run_demo_pdet_pose(media_filename,
             # for each human detected/crop/heatmap
             color_maps = [(255, 0, 255), (0, 255, 255)]
             for i, (heatmap, box) in enumerate(zip(heatmaps, boxes)):
+                # save heatmap plot
+                PoseEstimator.plot_and_save_heatmap(heatmap, f"{FLAGS.result_save_dir}/heatmap_{i}_{str(counter).zfill(6)}.jpg")
                 keypoints, keypoints_score = PoseEstimator.get_max_pred_keypoints_from_heatmap(
                     heatmap)
                 x1, y1 = int(box[1]), int(box[0])  # top left
@@ -153,12 +157,12 @@ def run_demo_pdet_pose(media_filename,
             if FLAGS.result_save_dir is not None:
                 if FLAGS.inference_mode == "image":
                     cv2.imwrite(
-                        f"{FLAGS.result_save_dir}/frame_{counter}.jpg", drawn_img)
+                        f"{FLAGS.result_save_dir}/frame_{str(counter).zfill(6)}.jpg", drawn_img)
                 elif FLAGS.inference_mode == "video":
                     vid_writer.write(drawn_img)
         counter += 1
     if FLAGS.debug:
-        print(f"Time to process {counter} image(s)={time.time()-start_time}")
+        print(f"Time to process {counter} image(s)={time.time()-start_time:.3f}s")
 
     return final_result_list
 
@@ -169,7 +173,8 @@ def main():
                        model_name="ensemble_person_det_and_pose",
                        inference_mode=args.media_type,
                        det_threshold=args.detection_threshold,
-                       save_result_dir=args.output_dir)
+                       save_result_dir=args.output_dir,
+                       debug=args.debug)
 
 
 if __name__ == "__main__":
