@@ -28,7 +28,7 @@ def postprocess(results, output_name):
 
 def run_demo_pose_est(media_filename,
                       model_name,
-                      person_height=None,
+                      person_height=[175],
                       inference_mode="video",
                       det_threshold=0.55,
                       save_result_dir=None,  # set to None prevent saving

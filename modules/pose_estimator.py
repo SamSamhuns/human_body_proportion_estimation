@@ -3,6 +3,8 @@ import onnxruntime
 import numpy as np
 import cv2
 
+from typing import Dict
+
 
 IDX_TO_KEYPOINTS = {
     0: "nose", 1: "reye", 2: "leye",
@@ -25,7 +27,7 @@ class PoseEstimator:
         self.b, self.c, self.h, self.w = self.model.get_inputs()[0].shape
 
     @staticmethod
-    def preprocess(frame_s, w=288, h=384):
+    def preprocess(frame_s, w=288, h=384) -> np.ndarray:
         """frame must be a numpy ndarray of shape (B,H,W,C) or (H,W,C)
         """
         if isinstance(frame_s, list):
@@ -42,7 +44,7 @@ class PoseEstimator:
         frames = [_preprocess(frame_s[i]) for i in range(frame_s.shape[0])]
         return np.array(frames)
 
-    def inference(self, frame_s):
+    def inference(self, frame_s) -> np.ndarray:
         """
         args
             frame_s: numpy ndarray of shape (B,H,W,C) or (H,W,C)
@@ -70,7 +72,7 @@ class PoseEstimator:
         plt.savefig(save_path)
 
     @staticmethod
-    def get_max_pred_keypoints_from_heatmap(heatmap):
+    def get_max_pred_keypoints_from_heatmap(heatmap) -> tuple:
         """
         args
             heatmap: a numpy array of shape [num_joints, mheight, mwidth]
@@ -118,9 +120,77 @@ class PoseEstimator:
                             color=color)
                 cv2.circle(frame,
                            (x, y),
-                           frame.shape[0] // 100,
+                           frame.shape[0] // 150,
                            color,
                            thickness=-1)
+
+    @staticmethod
+    def _get_kp_dict(keypoints, ignored_kp_idx):
+        """ Get full set of kp list and use set
+        """
+        ignored_kp_idx = set(
+            ignored_kp_idx) if ignored_kp_idx is not None else {}
+        # set to use for skeleton connection, use_set
+        uset = {val for key, val in IDX_TO_KEYPOINTS.items()
+                if key not in ignored_kp_idx}
+
+        # from the screen viewer not the images perspective
+        (nose, reye, leye, rear, lear, rshoulder, lshoulder,
+         relbow, lelbow, rwrist, lwrist, rhip, lhip,
+         rknee, lknee, rankle, lankle) = keypoints
+
+        # get chest and crotch
+        if {'rshoulder', 'lshoulder'} <= uset:
+            chest = [int(rshoulder[0] + lshoulder[0]) // 2,
+                     int(rshoulder[1] + lshoulder[1]) // 2]
+            uset.add('chest')
+        if {"rhip", "lhip"} <= uset:
+            crotch = [int(rhip[0] + lhip[0]) // 2,
+                      int(rhip[1] + lhip[1]) // 2]
+            uset.add('crotch')
+
+        # reverse perspective to that of the image person
+        kp_dict = {"shoulder": [{"rshoulder", "lshoulder"}, (rshoulder, lshoulder)],
+                   "torso": [{"crotch", "chest"}, (crotch, chest)],
+                   "lshoulder_lelbow": [{"rshoulder", "relbow"}, (rshoulder, relbow)],
+                   "rshoulder_relbow": [{"lshoulder", "lelbow"}, (lshoulder, lelbow)],
+                   "lwrist_lelbow": [{"rwrist", "relbow"}, (rwrist, relbow)],
+                   "rwrist_relbow": [{"lwrist", "lelbow"}, (lwrist, lelbow)],
+                   "rhip_lhip": [{"lhip", "rhip"}, (lhip, rhip)],
+                   "rhip_rknee": [{"lhip", "lknee"}, (lhip, lknee)],
+                   "lhip_lknee": [{"rhip", "rknee"}, (rhip, rknee)],
+                   "rankle_rknee": [{"lankle", "lknee"}, (lankle, lknee)],
+                   "lankle_lknee": [{"rankle", "rknee"}, (rankle, rknee)]}
+
+        # filter points that are ignored and set them to None
+        name_kp_dict = {k: v[1] if v[0] <= uset else None
+                        for k, v in kp_dict.items()}
+        return name_kp_dict
+
+    @staticmethod
+    def _calc_dist_betw_keypoints(kp_dict: Dict[str, tuple]) -> None:
+        for part_name, part_kp in kp_dict.items():
+            if part_kp is not None:  # if required points are not missing
+                p1, p2 = map(np.asarray, part_kp)
+                kp_dict[part_name] = np.linalg.norm(p1 - p2)
+
+    @staticmethod
+    def _draw_line_bet_keypoints(kp_dict: Dict[str, tuple], frame: np.ndarray,
+                                 color: tuple, thickness: int) -> Dict[str, float]:
+        for part_name, part_kp in kp_dict.items():
+            if part_kp is not None:  # if required points are not missing
+                p1, p2 = map(tuple, part_kp)
+                cv2.line(frame, p1, p2, color, thickness)
+
+    @staticmethod
+    def get_keypoint_dist_dict(pixel_to_cm, keypoints, ignored_kp_idx=None) -> Dict[str, float]:
+        # get connec name, end point name + end point coord dict
+        name_kp_dict = PoseEstimator._get_kp_dict(keypoints, ignored_kp_idx)
+        # replace dict point names with their dist
+        PoseEstimator._calc_dist_betw_keypoints(name_kp_dict)
+        # conv pixels values to cm
+        dist_dict = {k: v * pixel_to_cm for k, v in name_kp_dict.items()}
+        return dist_dict
 
     @staticmethod
     def draw_skeleton_from_keypoints(frame, keypoints, ignored_kp_idx=None, color=(0, 0, 255), thickness=1) -> None:
@@ -130,55 +200,7 @@ class PoseEstimator:
             keypoints: array of keypoints of shape (N,2)
             ignored_kp_idx: set containing numerical indexes to ignore [0, 16]
         """
-        ignored_kp_idx = set(
-            ignored_kp_idx) if ignored_kp_idx is not None else {}
-        # from the viewer not the images perspective
-        (nose, reye, leye, rear, lear, rshoulder,
-         lshoulder, relbow, lelbow, rwrist, lwrist,
-         rhip, lhip, rknee, lknee, rankle, lankle) = map(tuple, keypoints)
-
-        # set to use for skeleton connection
-        uset = {val for key, val in IDX_TO_KEYPOINTS.items()
-                if key not in ignored_kp_idx}
-
-        # get chest and crotch
-        if {'rshoulder', 'lshoulder'} <= uset:
-            chest = (int(rshoulder[0] + lshoulder[0]) // 2,
-                     int(rshoulder[1] + lshoulder[1]) // 2)
-            uset.add('chest')
-        if {"rhip", "lhip"} <= uset:
-            crotch = (int(rhip[0] + lhip[0]) // 2,
-                      int(rhip[1] + lhip[1]) // 2)
-            uset.add('crotch')
-
-        # face
-        if {"nose", "reye", "leye"} <= uset:
-            cv2.line(frame, nose, reye, color, thickness)
-            cv2.line(frame, nose, leye, color, thickness)
-        if {"chest", "nose"} <= uset:
-            cv2.line(frame, chest, nose, color, thickness)
-        # torso
-        if {"rshoulder", "lshoulder"} <= uset:
-            cv2.line(frame, rshoulder, lshoulder, color, thickness)
-        if {"crotch", "chest"} <= uset:
-            cv2.line(frame, chest, crotch, color, thickness)
-        # arms
-        if {"rshoulder", "relbow"} <= uset:
-            cv2.line(frame, rshoulder, relbow, color, thickness)
-        if {"lshoulder", "lelbow"} <= uset:
-            cv2.line(frame, lshoulder, lelbow, color, thickness)
-        if {"rwrist", "relbow"} <= uset:
-            cv2.line(frame, relbow, rwrist, color, thickness)
-        if {"lwrist", "lelbow"} <= uset:
-            cv2.line(frame, lelbow, lwrist, color, thickness)
-        # legs
-        if {"lhip", "rhip"} <= uset:
-            cv2.line(frame, lhip, rhip, color, thickness)
-        if {"lhip", "lknee"} <= uset:
-            cv2.line(frame, lhip, lknee, color, thickness)
-        if {"rhip", "rknee"} <= uset:
-            cv2.line(frame, rhip, rknee, color, thickness)
-        if {"lankle", "lknee"} <= uset:
-            cv2.line(frame, lknee, lankle, color, thickness)
-        if {"rankle", "rknee"} <= uset:
-            cv2.line(frame, rknee, rankle, color, thickness)
+        # get connec name, end point name + end point coord dict
+        name_kp_dict = PoseEstimator._get_kp_dict(keypoints, ignored_kp_idx)
+        # plot lines between keypoints that are valid
+        PoseEstimator._draw_line_bet_keypoints(name_kp_dict, frame, color, thickness)

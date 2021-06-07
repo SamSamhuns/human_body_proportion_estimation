@@ -26,12 +26,15 @@ def postprocess(results, output_name):
 
 def run_demo_pdet_pose(media_filename,
                        model_name,
+                       # list with input heights, def avg male height
+                       person_height=[175],
                        inference_mode='video',
                        det_threshold=0.55,
                        save_result_dir=None,  # set to None prevent saving
                        debug=True):
     FLAGS.media_filename = media_filename
     FLAGS.model_name = model_name
+    FLAGS.p_height = person_height
     FLAGS.inference_mode = inference_mode
     FLAGS.det_threshold = det_threshold
     FLAGS.result_save_dir = save_result_dir
@@ -101,7 +104,6 @@ def run_demo_pdet_pose(media_filename,
     # shift the coords of the bbox to sned more info to pose extractor
     x_shift = w // 17 if w is not None else image_data[0].shape[0] // 17
     y_shift = 0
-    print(image_data[0].shape, x_shift, y_shift)
     image_data_list = [image_data,
                        np.array([FLAGS.det_threshold], dtype=np.float32),
                        np.array([x_shift, y_shift], dtype=np.float32)]
@@ -127,7 +129,7 @@ def run_demo_pdet_pose(media_filename,
             h, w, c = drawn_img.shape
             boxes *= [h, w, h, w]
             # for each human detected/crop/heatmap
-            color_maps = [(255, 0, 255), (0, 255, 255)]
+            cmaps = [(255, 255, 0), (0, 0, 255)]
             for i, (heatmap, box) in enumerate(zip(heatmaps, boxes)):
                 # save heatmap plot
                 PoseEstimator.plot_and_save_heatmap(
@@ -145,20 +147,28 @@ def run_demo_pdet_pose(media_filename,
                 keypoints *= [crop_width, crop_height]
                 keypoints += [x1, y1]
 
-                ignored_kp_idx = {i for i, score in enumerate(keypoints_score)
-                                  if score < FLAGS.KEYPOINT_THRES_LIST[i]}
+                ig_kp_idx = {i for i, score in enumerate(keypoints_score)
+                             if score < FLAGS.KEYPOINT_THRES_LIST[i]}
+
+                # get estimations of body part lengths
+                height_pixel = y2 - y1
+                height_cm = FLAGS.p_height[min(i, len(FLAGS.p_height) - 1)]
+                pixel_to_cm = height_cm / height_pixel
+                dist_dict = PoseEstimator.get_keypoint_dist_dict(
+                    pixel_to_cm, keypoints, ignored_kp_idx=ig_kp_idx)
+                final_result_list[-1].append(dist_dict)
 
                 # uncomment to plot bounding boxes
                 plot_one_box([x1, y1, x2, y2], drawn_img,
-                             color=color_maps[i % 2])
+                             color=cmaps[i % 2])
 
                 # uncomment to draw skeletons on orig image
                 PoseEstimator.draw_skeleton_from_keypoints(
-                    drawn_img, keypoints, ignored_kp_idx=ignored_kp_idx, color=color_maps[i % 2])
+                    drawn_img, keypoints, ignored_kp_idx=ig_kp_idx, color=cmaps[i % 2], thickness=crop_width // 150)
 
                 # uncomment to draw keypoints on orig image
                 PoseEstimator.plot_keypoints(
-                    drawn_img, keypoints, color_maps[i % 2], ignored_kp_idx=ignored_kp_idx)
+                    drawn_img, keypoints, cmaps[i % 2], ignored_kp_idx=ig_kp_idx)
             if FLAGS.result_save_dir is not None:
                 if FLAGS.inference_mode == "image":
                     cv2.imwrite(
@@ -169,7 +179,6 @@ def run_demo_pdet_pose(media_filename,
     if FLAGS.debug:
         print(
             f"Time to process {counter} image(s)={time.time()-start_time:.3f}s")
-
     return final_result_list
 
 
