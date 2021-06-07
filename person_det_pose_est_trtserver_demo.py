@@ -98,9 +98,13 @@ def run_demo_pdet_pose(media_filename,
 
     trt_inf_data = (triton_client, input_name,
                     output_name, dtype, max_batch_size)
+    # shift the coords of the bbox to sned more info to pose extractor
+    x_shift = w // 17 if w is not None else image_data[0].shape[0] // 17
+    y_shift = 0
+    print(image_data[0].shape, x_shift, y_shift)
     image_data_list = [image_data,
                        np.array([FLAGS.det_threshold], dtype=np.float32),
-                       np.array([10, 0], dtype=np.float32)]
+                       np.array([x_shift, y_shift], dtype=np.float32)]
     # get inference results
     responses = get_inference_responses(image_data_list, FLAGS, trt_inf_data)
 
@@ -126,7 +130,8 @@ def run_demo_pdet_pose(media_filename,
             color_maps = [(255, 0, 255), (0, 255, 255)]
             for i, (heatmap, box) in enumerate(zip(heatmaps, boxes)):
                 # save heatmap plot
-                PoseEstimator.plot_and_save_heatmap(heatmap, f"{FLAGS.result_save_dir}/heatmap_{i}_{str(counter).zfill(6)}.jpg")
+                PoseEstimator.plot_and_save_heatmap(
+                    heatmap, f"{FLAGS.result_save_dir}/heatmap_{i}_{str(counter).zfill(6)}.jpg")
                 keypoints, keypoints_score = PoseEstimator.get_max_pred_keypoints_from_heatmap(
                     heatmap)
                 x1, y1 = int(box[1]), int(box[0])  # top left
@@ -162,7 +167,8 @@ def run_demo_pdet_pose(media_filename,
                     vid_writer.write(drawn_img)
         counter += 1
     if FLAGS.debug:
-        print(f"Time to process {counter} image(s)={time.time()-start_time:.3f}s")
+        print(
+            f"Time to process {counter} image(s)={time.time()-start_time:.3f}s")
 
     return final_result_list
 
