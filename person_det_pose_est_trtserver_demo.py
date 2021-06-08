@@ -24,14 +24,15 @@ def postprocess(results, output_name):
     return boxes.copy(), heatmaps
 
 
-def run_demo_pdet_pose(media_filename,
-                       model_name,
-                       # list with input heights, def avg male height
-                       person_height=[175],
-                       inference_mode='video',
-                       det_threshold=0.55,
-                       save_result_dir=None,  # set to None prevent saving
-                       debug=True):
+def run_pdet_pose(media_filename,
+                  model_name="ensemble_person_det_and_pose",
+                  # list with input heights, def avg male height
+                  person_height=[175],
+                  inference_mode='image',
+                  det_threshold=0.70,
+                  # set to None prevent saving
+                  save_result_dir=None,
+                  debug=True):
     FLAGS.media_filename = media_filename
     FLAGS.model_name = model_name
     FLAGS.p_height = person_height
@@ -184,12 +185,12 @@ def run_demo_pdet_pose(media_filename,
 
 def main():
     args = parse_arguments("Person Detection and Pose Estimation")
-    run_demo_pdet_pose(args.input_path,
-                       model_name="ensemble_person_det_and_pose",
-                       inference_mode=args.media_type,
-                       det_threshold=args.detection_threshold,
-                       save_result_dir=args.output_dir,
-                       debug=args.debug)
+    run_pdet_pose(args.input_path,
+                  model_name="ensemble_person_det_and_pose",
+                  inference_mode=args.media_type,
+                  det_threshold=args.detection_threshold,
+                  save_result_dir=args.output_dir,
+                  debug=args.debug)
 
 
 if __name__ == "__main__":
