@@ -72,12 +72,12 @@ class PoseEstimator:
         plt.savefig(save_path)
 
     @staticmethod
-    def get_max_pred_keypoints_from_heatmap(heatmap) -> tuple:
+    def get_max_pred_keypts_from_heatmap(heatmap) -> tuple:
         """
         args
             heatmap: a numpy array of shape [num_joints, mheight, mwidth]
         return
-            keypoints: coordinates of joints scaled to mheight, mwidth
+            keypts: coordinates of joints scaled to mheight, mwidth
             maxvals: confidence score of each joint
         """
         num_joints = heatmap.shape[0]
@@ -95,22 +95,22 @@ class PoseEstimator:
         preds[:, 1] = np.floor((preds[:, 1]) / width)
         pred_mask = np.tile(np.greater(maxvals, 0.0), (1, 2))
         pred_mask = pred_mask.astype(np.float32)
-        keypoints = preds * pred_mask
-        return keypoints, maxvals
+        keypts = preds * pred_mask
+        return keypts, maxvals
 
     @staticmethod
-    def plot_keypoints(frame, keypoints, color, ignored_kp_idx=None) -> None:
+    def plot_keypts(frame, keypts, color, ignored_kp_idx=None) -> None:
         """
         args
             frame: numpy ndarray of shape (H,W,C)
-            keypoints: array of keypoints of shape (N,2)
+            keypts: array of keypts of shape (N,2)
             color: color of keypoint (B,G,R)
             ignored_kp_idx: set of values in range [0, 16]
                 indexes represented inside dict: IDX_TO_KEYPOINTS
         """
         ignored_kp_idx_set = set(
             ignored_kp_idx) if ignored_kp_idx is not None else {}
-        for i, (x, y) in enumerate(keypoints):
+        for i, (x, y) in enumerate(keypts):
             if i not in ignored_kp_idx_set:
                 cv2.putText(frame,
                             f"{i}",
@@ -125,7 +125,7 @@ class PoseEstimator:
                            thickness=-1)
 
     @staticmethod
-    def _get_kp_dict(keypoints, ignored_kp_idx):
+    def _get_kp_dict(keypts, ignored_kp_idx):
         """ Get full set of kp list and use set
         """
         ignored_kp_idx = set(
@@ -137,7 +137,7 @@ class PoseEstimator:
         # from the screen viewer not the images perspective
         (nose, reye, leye, rear, lear, rshoulder, lshoulder,
          relbow, lelbow, rwrist, lwrist, rhip, lhip,
-         rknee, lknee, rankle, lankle) = keypoints
+         rknee, lknee, rankle, lankle) = keypts
 
         # get chest and crotch
         if {'rshoulder', 'lshoulder'} <= uset:
@@ -168,39 +168,40 @@ class PoseEstimator:
         return name_kp_dict
 
     @staticmethod
-    def _calc_dist_betw_keypoints(kp_dict: Dict[str, tuple]) -> None:
+    def _calc_dist_betw_keypts(kp_dict: Dict[str, tuple]) -> None:
         for part_name, part_kp in kp_dict.items():
             if part_kp is not None:  # if required points are not missing
                 p1, p2 = map(np.asarray, part_kp)
                 kp_dict[part_name] = np.linalg.norm(p1 - p2)
 
     @staticmethod
-    def _draw_line_bet_keypoints(kp_dict: Dict[str, tuple], frame: np.ndarray,
-                                 color: tuple, thickness: int) -> Dict[str, float]:
+    def _draw_line_bet_keypts(kp_dict: Dict[str, tuple], frame: np.ndarray,
+                              color: tuple, thickness: int) -> Dict[str, float]:
         for part_name, part_kp in kp_dict.items():
             if part_kp is not None:  # if required points are not missing
                 p1, p2 = map(tuple, part_kp)
                 cv2.line(frame, p1, p2, color, thickness)
 
     @staticmethod
-    def get_keypoint_dist_dict(pixel_to_cm, keypoints, ignored_kp_idx=None) -> Dict[str, float]:
+    def get_keypoint_dist_dict(pixel_to_cm, keypts, ignored_kp_idx=None) -> Dict[str, float]:
         # get connec name, end point name + end point coord dict
-        name_kp_dict = PoseEstimator._get_kp_dict(keypoints, ignored_kp_idx)
+        name_kp_dict = PoseEstimator._get_kp_dict(keypts, ignored_kp_idx)
         # replace dict point names with their dist
-        PoseEstimator._calc_dist_betw_keypoints(name_kp_dict)
+        PoseEstimator._calc_dist_betw_keypts(name_kp_dict)
         # conv pixels values to cm
         dist_dict = {k: v * pixel_to_cm for k, v in name_kp_dict.items()}
         return dist_dict
 
     @staticmethod
-    def draw_skeleton_from_keypoints(frame, keypoints, ignored_kp_idx=None, color=(0, 0, 255), thickness=1) -> None:
+    def draw_skeleton_from_keypts(frame, keypts, ignored_kp_idx=None, color=(0, 0, 255), thickness=1) -> None:
         """
         args:
             frame: numpy ndarray of shape (H,W,C)
-            keypoints: array of keypoints of shape (N,2)
+            keypts: array of keypts of shape (N,2)
             ignored_kp_idx: set containing numerical indexes to ignore [0, 16]
         """
         # get connec name, end point name + end point coord dict
-        name_kp_dict = PoseEstimator._get_kp_dict(keypoints, ignored_kp_idx)
-        # plot lines between keypoints that are valid
-        PoseEstimator._draw_line_bet_keypoints(name_kp_dict, frame, color, thickness)
+        name_kp_dict = PoseEstimator._get_kp_dict(keypts, ignored_kp_idx)
+        # plot lines between keypts that are valid
+        PoseEstimator._draw_line_bet_keypts(
+            name_kp_dict, frame, color, thickness)

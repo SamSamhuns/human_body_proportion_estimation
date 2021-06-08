@@ -32,6 +32,7 @@ def run_pdet_pose(media_filename,
                   det_threshold=0.70,
                   # set to None prevent saving
                   save_result_dir=None,
+                  grpc_port='8994',
                   debug=True):
     FLAGS.media_filename = media_filename
     FLAGS.model_name = model_name
@@ -41,7 +42,7 @@ def run_pdet_pose(media_filename,
     FLAGS.result_save_dir = save_result_dir
     FLAGS.model_version = ""
     FLAGS.protocol = "grpc"
-    FLAGS.url = '127.0.0.1:8994'
+    FLAGS.url = f'127.0.0.1:{grpc_port}'
     FLAGS.verbose = False
     FLAGS.classes = 0  # classes must be set to 0
     FLAGS.debug = debug
@@ -92,13 +93,13 @@ def run_pdet_pose(media_filename,
         ]
     filenames.sort()
 
-    # all_reqested_images_orig will be [] if FLAGS.result_save_dir is None
-    image_data, all_reqested_images_orig, fps = extract_data_from_media(
+    # all_req_imgs_orig will be [] if FLAGS.result_save_dir is None
+    image_data, all_req_imgs_orig, all_req_imgs_orig_size, fps = extract_data_from_media(
         FLAGS, preprocess, filenames, w, h)
 
     if len(image_data) == 0:
         print("Image data was missing")
-        return -1
+        return []
 
     trt_inf_data = (triton_client, input_name,
                     output_name, dtype, max_batch_size)
@@ -123,63 +124,69 @@ def run_pdet_pose(media_filename,
 
         # display boxes on image array
         if FLAGS.result_save_dir is not None:
-            drawn_img = all_reqested_images_orig[counter]
+            drawn_img = all_req_imgs_orig[counter]
             drawn_img = resize_maintaining_aspect(drawn_img, w, h)
-
-            # de-normalize bbox coords
             h, w, c = drawn_img.shape
-            boxes *= [h, w, h, w]
-            # for each human detected/crop/heatmap
-            cmaps = [(255, 255, 0), (0, 0, 255)]
-            for i, (heatmap, box) in enumerate(zip(heatmaps, boxes)):
-                # save heatmap plot
-                PoseEstimator.plot_and_save_heatmap(
-                    heatmap, f"{FLAGS.result_save_dir}/heatmap_{i}_{str(counter).zfill(6)}.jpg")
-                keypoints, keypoints_score = PoseEstimator.get_max_pred_keypoints_from_heatmap(
-                    heatmap)
-                x1, y1 = int(box[1]), int(box[0])  # top left
-                x2, y2 = int(box[3]), int(box[2])  # bottom right
+        else:
+            h, w, c = all_req_imgs_orig_size[counter]
 
-                # change coord axes of keypoints to match that of orig image
-                _, hmap_height, hmap_width = heatmap.shape
-                crop_width, crop_height = x2 - x1, y2 - y1
-                # following is equi to this: x, y = int((x / hw) * cw) + x1, int((y / hh) * ch) + y1
-                keypoints /= [hmap_width, hmap_height]
-                keypoints *= [crop_width, crop_height]
-                keypoints += [x1, y1]
+        # de-normalize bbox coords
+        boxes *= [h, w, h, w]
+        # for each human detected/crop/heatmap
+        cmaps = [(255, 255, 0), (0, 0, 255)]
+        for i, (heatmap, box) in enumerate(zip(heatmaps, boxes)):
+            keypts, keypts_score = PoseEstimator.get_max_pred_keypts_from_heatmap(
+                heatmap)
+            x1, y1 = int(box[1]), int(box[0])  # top left
+            x2, y2 = int(box[3]), int(box[2])  # bottom right
 
-                ig_kp_idx = {i for i, score in enumerate(keypoints_score)
-                             if score < FLAGS.KEYPOINT_THRES_LIST[i]}
+            # change coord axes of keypts to match that of orig image
+            _, hmap_height, hmap_width = heatmap.shape
+            crop_width, crop_height = x2 - x1, y2 - y1
+            # following is equi to this: x, y = int((x / hw) * cw) + x1, int((y / hh) * ch) + y1
+            keypts /= [hmap_width, hmap_height]
+            keypts *= [crop_width, crop_height]
+            keypts += [x1, y1]
 
-                # get estimations of body part lengths
-                height_pixel = y2 - y1
-                height_cm = FLAGS.p_height[min(i, len(FLAGS.p_height) - 1)]
-                pixel_to_cm = height_cm / height_pixel
-                dist_dict = PoseEstimator.get_keypoint_dist_dict(
-                    pixel_to_cm, keypoints, ignored_kp_idx=ig_kp_idx)
-                final_result_list[-1].append(dist_dict)
+            ig_kp_idx = {i for i, score in enumerate(keypts_score)
+                         if score < FLAGS.KEYPOINT_THRES_LIST[i]}
 
+            # get estimations of body part lengths
+            height_pixel = y2 - y1
+            height_cm = FLAGS.p_height[min(i, len(FLAGS.p_height) - 1)]
+            pixel_to_cm = height_cm / height_pixel
+            dist_dict = PoseEstimator.get_keypoint_dist_dict(
+                pixel_to_cm, keypts, ignored_kp_idx=ig_kp_idx)
+            final_result_list[-1].append(dist_dict)
+
+            if FLAGS.result_save_dir is not None:
                 # uncomment to plot bounding boxes
                 plot_one_box([x1, y1, x2, y2], drawn_img,
                              color=cmaps[i % 2])
 
                 # uncomment to draw skeletons on orig image
-                PoseEstimator.draw_skeleton_from_keypoints(
-                    drawn_img, keypoints, ignored_kp_idx=ig_kp_idx, color=cmaps[i % 2], thickness=crop_width // 150)
+                PoseEstimator.draw_skeleton_from_keypts(
+                    drawn_img, keypts, ignored_kp_idx=ig_kp_idx, color=cmaps[i % 2], thickness=crop_width // 150)
 
-                # uncomment to draw keypoints on orig image
-                PoseEstimator.plot_keypoints(
-                    drawn_img, keypoints, cmaps[i % 2], ignored_kp_idx=ig_kp_idx)
-            if FLAGS.result_save_dir is not None:
-                if FLAGS.inference_mode == "image":
-                    cv2.imwrite(
-                        f"{FLAGS.result_save_dir}/frame_{str(counter).zfill(6)}.jpg", drawn_img)
-                elif FLAGS.inference_mode == "video":
-                    vid_writer.write(drawn_img)
-        counter += 1
+                # uncomment to draw keypts on orig image
+                PoseEstimator.plot_keypts(
+                    drawn_img, keypts, cmaps[i % 2], ignored_kp_idx=ig_kp_idx)
+
+                # save heatmap plot
+                PoseEstimator.plot_and_save_heatmap(
+                    heatmap, f"{FLAGS.result_save_dir}/heatmap_{i}_{str(counter).zfill(6)}.jpg")
+
+        if FLAGS.result_save_dir is not None:
+            if FLAGS.inference_mode == "image":
+                cv2.imwrite(
+                    f"{FLAGS.result_save_dir}/frame_{str(counter).zfill(6)}.jpg", drawn_img)
+            elif FLAGS.inference_mode == "video":
+                vid_writer.write(drawn_img)
+    counter += 1
     if FLAGS.debug:
         print(
             f"Time to process {counter} image(s)={time.time()-start_time:.3f}s")
+
     return final_result_list
 
 
@@ -190,6 +197,7 @@ def main():
                   inference_mode=args.media_type,
                   det_threshold=args.detection_threshold,
                   save_result_dir=args.output_dir,
+                  grpc_port=args.grpc_port,
                   debug=args.debug)
 
 

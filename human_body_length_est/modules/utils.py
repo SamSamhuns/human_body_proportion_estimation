@@ -25,6 +25,9 @@ def parse_arguments(desc):
     parser.add_argument('-t', '--detection-threshold',
                         default=0.6,  type=float,
                         help='Detection Threshold. Default: 0.6')
+    parser.add_argument('-g', '--grpc_port',
+                        default="8994",
+                        help='grpc port where triton-server is exposed')
     parser.add_argument('--debug',
                         default=True,
                         help='Debug Mode')

@@ -12,8 +12,8 @@ RUN mkdir -p /cv_root/models
 
 RUN pip install nvidia-pyindex==1.0.6
 RUN pip install tritonclient[grpc]==2.6.0
-COPY perf_analyzer /cv_root/
 
 COPY models /cv_root/models
 
+# for only running triton server with grpc port
 CMD ["tritonserver", "--model-repository", "/cv_root/models", "--allow-grpc=true", "--allow-http=false", "--grpc-port=8081"]

@@ -1,6 +1,9 @@
 import os
 import cv2
 import numpy as np
+from io import BytesIO
+from PIL import Image
+
 import tritonclient.grpc as grpcclient
 from tritonclient.utils import InferenceServerException
 
@@ -71,7 +74,8 @@ def parse_model_grpc(model_metadata, model_config):
 
 def extract_data_from_media(FLAGS, preprocess_func, media_filenames, w, h):
     image_data = []
-    all_reqested_images_orig = []
+    all_req_imgs_orig = []
+    all_req_imgs_orig_size = []
     fps = None
 
     for filename in media_filenames:
@@ -79,10 +83,14 @@ def extract_data_from_media(FLAGS, preprocess_func, media_filenames, w, h):
             try:
                 # if an image path is provided instead of a numpy H,W,C image
                 if isinstance(filename, str) and os.path.isfile(filename):
-                    filename = cv2.imread(filename)
-                image_data.append(preprocess_func(filename, w, h))
+                    img = cv2.imread(filename)
+                else:
+                    img = np.asarray(Image.open(BytesIO(filename)))
+
+                image_data.append(preprocess_func(img, w, h))
+                all_req_imgs_orig_size.append(img.shape)
                 if FLAGS.result_save_dir is not None:
-                    all_reqested_images_orig.append(filename)
+                    all_req_imgs_orig.append(img)
                 fps = 1
             except Exception as e:
                 print(f"{e}. Failed to process image {filename}")
@@ -113,11 +121,12 @@ def extract_data_from_media(FLAGS, preprocess_func, media_filenames, w, h):
                         break
                     i += 1
                 image_data = vid
-                all_reqested_images_orig = orig_vid
+                all_req_imgs_orig = orig_vid
+                all_req_imgs_orig_size = orig_vid.shape if orig_vid != [] else []
                 cap.release()
             except Exception as e:
                 print(f"{e}. Failed to process video {filename}")
-    return image_data, all_reqested_images_orig, fps
+    return image_data, all_req_imgs_orig, all_req_imgs_orig_size, fps
 
 
 def get_inference_responses(image_data_list, FLAGS, trt_inf_data):

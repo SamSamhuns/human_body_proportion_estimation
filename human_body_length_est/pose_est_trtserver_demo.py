@@ -108,7 +108,7 @@ def run_demo_pose_est(media_filename,
             # save heatmap plot
             PoseEstimator.plot_and_save_heatmap(
                 heatmap, f"{FLAGS.result_save_dir}/heatmap_{str(counter).zfill(6)}.jpg")
-            keypoints, conf = PoseEstimator.get_max_pred_keypoints_from_heatmap(
+            keypts, conf = PoseEstimator.get_max_pred_keypts_from_heatmap(
                 heatmap)
 
             # display boxes on image array
@@ -118,15 +118,15 @@ def run_demo_pose_est(media_filename,
 
                 _, hmap_height, hmap_width = heatmap.shape
                 img_height, img_width, _ = drawn_img.shape
-                keypoints /= [hmap_width, hmap_height]
-                keypoints *= [img_width, img_height]
+                keypts /= [hmap_width, hmap_height]
+                keypts *= [img_width, img_height]
 
                 # uncomment to draw skeletons on orig image
-                PoseEstimator.draw_skeleton_from_keypoints(
-                    drawn_img, keypoints, ignored_kp_idx=None, color=(0, 0, 255), thickness=2)
+                PoseEstimator.draw_skeleton_from_keypts(
+                    drawn_img, keypts, ignored_kp_idx=None, color=(0, 0, 255), thickness=2)
 
-                PoseEstimator.plot_keypoints(
-                    drawn_img, keypoints, (0, 0, 255))
+                PoseEstimator.plot_keypts(
+                    drawn_img, keypts, (0, 0, 255))
             if FLAGS.result_save_dir is not None:
                 if FLAGS.inference_mode == "image":
                     cv2.imwrite(

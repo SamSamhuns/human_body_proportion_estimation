@@ -19,10 +19,7 @@ while [[ "$#" -gt 0 ]]; do
 done
 
 echo "Running docker with exposed triton-server grpc port: $grpc"
-
-docker run -d --rm \
-      --shm-size=1g --ulimit memlock=-1 --ulimit stack=67108864 \
-      --gpus device="0" \
-      --name pac \
-      -p $grpc:8081 \
-      person_det_pose
+docker-compose run -d \
+              -p $grpc:8081 \
+              --name body_est_trt \
+              trt_server
