@@ -35,16 +35,7 @@ def parse_arguments(desc):
     return parser.parse_args()
 
 
-def color_distance(rgb1, rgb2):
-    """
-    distance between two colors(3)
-    """
-    rm = 0.5 * (rgb1[0] + rgb2[0])
-    d = sum((2 + rm, 4, 3 - rm) * (rgb1 - rgb2)**2)**0.5
-    return d
-
-
-def plot_one_box(bbox, img, wscale=1, hscale=1, color=None, label=None, line_thickness=None):
+def plot_one_box(bbox, img, wscale=1, hscale=1, color=None, label=None, line_thickness=None) -> None:
     """
     Plot one bounding box on image img
     args

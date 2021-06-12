@@ -125,8 +125,8 @@ class PoseEstimator:
                            thickness=-1)
 
     @staticmethod
-    def _get_kp_dict(keypts, ignored_kp_idx):
-        """ Get full set of kp list and use set
+    def _get_kp_dict(keypts, ignored_kp_idx) -> Dict:
+        """ Get a connections name keypoint dict name_kp_dict
         """
         ignored_kp_idx = set(
             ignored_kp_idx) if ignored_kp_idx is not None else {}
@@ -173,10 +173,12 @@ class PoseEstimator:
             if part_kp is not None:  # if required points are not missing
                 p1, p2 = map(np.asarray, part_kp)
                 kp_dict[part_name] = np.linalg.norm(p1 - p2)
+            else:
+                kp_dict[part_name] = 0  # part was not visible
 
     @staticmethod
     def _draw_line_bet_keypts(kp_dict: Dict[str, tuple], frame: np.ndarray,
-                              color: tuple, thickness: int) -> Dict[str, float]:
+                              color: tuple, thickness: int) -> None:
         for part_name, part_kp in kp_dict.items():
             if part_kp is not None:  # if required points are not missing
                 p1, p2 = map(tuple, part_kp)
@@ -189,7 +191,8 @@ class PoseEstimator:
         # replace dict point names with their dist
         PoseEstimator._calc_dist_betw_keypts(name_kp_dict)
         # conv pixels values to cm
-        dist_dict = {k: v * pixel_to_cm for k, v in name_kp_dict.items()}
+        dist_dict = {k: v * pixel_to_cm if v > 0 else "Part not visible"
+                     for k, v in name_kp_dict.items()}
         return dist_dict
 
     @staticmethod
