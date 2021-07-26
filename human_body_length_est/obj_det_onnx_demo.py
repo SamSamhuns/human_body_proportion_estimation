@@ -180,7 +180,7 @@ if __name__ == '__main__':
     t1 = time.time()
     detect_onnx(src_path=args.input_path,
                 media_type=args.media_type,
-                threshold=args.threshold,
+                threshold=args.detection_threshold,
                 official=True,  # official yolov5 post-processing
                 onnx_path=args.onnx_path,
                 output_dir=args.output_dir,

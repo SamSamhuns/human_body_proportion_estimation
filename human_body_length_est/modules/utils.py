@@ -93,19 +93,19 @@ def parse_arguments(desc):
                         help='Type of Input: image, video. Default: image')
     parser.add_argument('-ox', '--onnx_path',
                         default="yolov5/yolov5s.onnx",  type=str,
-                        help='Path to ONNX model. efault: yolov5/yolov5s.onnx')
+                        help='Path to ONNX model. Default: yolov5/yolov5s.onnx')
     parser.add_argument('-o', '--output_dir',
                         default='output',  type=str,
                         help='Output directory. Default: output')
     parser.add_argument('-c', '--num_classes',
                         default=80,  type=int,
                         help='Num of classes. Default: 80')
-    parser.add_argument('-t', '--detection-threshold',
+    parser.add_argument('-t', '--detection_threshold',
                         default=0.6,  type=float,
                         help='Detection Threshold. Default: 0.6')
     parser.add_argument('-g', '--grpc_port',
                         default="8994",
-                        help='grpc port where triton-server is exposed')
+                        help='grpc port where triton-server is exposed. Default: 8994')
     parser.add_argument('--debug',
                         default=True,
                         help='Debug Mode')
