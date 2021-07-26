@@ -3,6 +3,7 @@ from modules.triton_utils import get_inference_responses, extract_data_from_medi
 from modules.utils import Flag_config, parse_arguments, resize_maintaining_aspect
 from modules.pose_estimator import PoseEstimator
 
+from functools import partial
 import numpy as np
 import time
 import cv2
@@ -84,9 +85,13 @@ def run_demo_pose_est(media_filename,
         ]
     filenames.sort()
 
+    nptype_dict = {"UINT8": np.uint8, "FP32": np.float32, "FP16": np.float16}
+    # Important, make sure the first input is the input image
+    image_input_idx = 0
+    preprocess_dtype = partial(preprocess, new_type=nptype_dict[dtype[image_input_idx]])
     # all_reqested_images_orig will be [] if FLAGS.result_save_dir is None
-    image_data, all_reqested_images_orig, fps = extract_data_from_media(
-        FLAGS, preprocess, filenames, w, h)
+    image_data, all_reqested_images_orig, _, fps = extract_data_from_media(
+        FLAGS, preprocess_dtype, filenames, w, h)
 
     if len(image_data) == 0:
         print("Image data was missing")

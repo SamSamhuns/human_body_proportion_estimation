@@ -86,8 +86,7 @@ def extract_data_from_media(FLAGS, preprocess_func, media_filenames, w, h):
                     img = cv2.imread(filename)
                 else:
                     img = np.asarray(Image.open(BytesIO(filename)))
-
-                image_data.append(preprocess_func(img, w, h))
+                image_data.append(preprocess_func(img=img, width=w, height=h))
                 all_req_imgs_orig_size.append(img.shape)
                 if FLAGS.result_save_dir is not None:
                     all_req_imgs_orig.append(img)

@@ -3,6 +3,7 @@ from modules.triton_utils import get_inference_responses, extract_data_from_medi
 from modules.utils import Flag_config, parse_arguments, resize_maintaining_aspect, plot_one_box
 from modules.pose_estimator import PoseEstimator
 
+from functools import partial
 import numpy as np
 import time
 import cv2
@@ -93,9 +94,13 @@ def run_pdet_pose(media_filename,
         ]
     filenames.sort()
 
+    nptype_dict = {"UINT8": np.uint8, "FP32": np.float32, "FP16": np.float16}
+    # Important, make sure the first input is the input image
+    image_input_idx = 0
+    preprocess_dtype = partial(preprocess, new_type=nptype_dict[dtype[image_input_idx]])
     # all_req_imgs_orig will be [] if FLAGS.result_save_dir is None
     image_data, all_req_imgs_orig, all_req_imgs_orig_size, fps = extract_data_from_media(
-        FLAGS, preprocess, filenames, w, h)
+        FLAGS, preprocess_dtype, filenames, w, h)
 
     if len(image_data) == 0:
         print("Image data was missing")
@@ -103,12 +108,12 @@ def run_pdet_pose(media_filename,
 
     trt_inf_data = (triton_client, input_name,
                     output_name, dtype, max_batch_size)
-    # shift the coords of the bbox to sned more info to pose extractor
-    x_shift = w // 17 if w is not None else image_data[0].shape[0] // 17
-    y_shift = 0
+    # expand the coords of the bbox to send more info to pose extractor
+    x_expand = w // 17 if w is not None else image_data[0].shape[0] // 17
+    y_expand = 0
     image_data_list = [image_data,
                        np.array([FLAGS.det_threshold], dtype=np.float32),
-                       np.array([x_shift, y_shift], dtype=np.float32)]
+                       np.array([x_expand, y_expand], dtype=np.float32)]
     # get inference results
     responses = get_inference_responses(image_data_list, FLAGS, trt_inf_data)
 

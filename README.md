@@ -22,3 +22,10 @@ $ docker-compose build trt_server
 $ bash run_docker_triton_server.sh -g EXPOSED_GRPC_PORT # Wait for model loading (60s)
 $ python human_body_length_est/person_det_pose_est_trtserver_demo.py  # test to verify working container
 ```
+
+### Performance Benchmarking
+
+```shell
+$ docker cp perf_analyzer DOCKER_CONTAINER_NAME:PATH
+$ ./perf_analyzer -m MODEL_NAME --percentile=95 -u localhost:8081 -i gRPC -b 1 --shape INPUT_NODE_NAME:1,300,300,3 --input-data random --concurrency-range 5:20:5
+```

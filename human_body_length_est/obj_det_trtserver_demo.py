@@ -2,6 +2,7 @@ from modules.triton_utils import extract_data_from_media, get_client_and_model_m
 from modules.triton_utils import parse_model_grpc, get_inference_responses
 from modules.utils import Flag_config, parse_arguments, resize_maintaining_aspect, plot_one_box
 
+from functools import partial
 import numpy as np
 import time
 import cv2
@@ -19,7 +20,6 @@ def preprocess(img, width=640, height=480, new_type=np.uint8):
 
 def postprocess(results, output_name):
     output_set = set(output_name)
-
     # edetlite4
     if "output_0" in output_set and "output_0" in output_set and "output_0" in output_set:
         det_boxes = results.as_numpy("output_0")[0]
@@ -71,8 +71,6 @@ def run_demo_odet(media_filename,
         return -1
     triton_client, model_metadata, model_config = model_info
 
-    # max_batch_size, input_name, output_name, h, w, c, format, dtype = parse_model_grpc(
-    #     model_metadata, model_config.config)
     # input_name, output_name, format, dtype are all lists
     max_batch_size, input_name, output_name, h, w, c, format, dtype = parse_model_grpc(
         model_metadata, model_config.config)
@@ -96,21 +94,26 @@ def run_demo_odet(media_filename,
         ]
     filenames.sort()
 
+    nptype_dict = {"UINT8": np.uint8, "FP32": np.float32, "FP16": np.float16}
+    # Important, make sure the first input is the input image
+    image_input_idx = 0
+    preprocess_dtype = partial(preprocess, new_type=nptype_dict[dtype[image_input_idx]])
     # all_reqested_images_orig will be [] if FLAGS.result_save_dir is None
-    image_data, all_reqested_images_orig, fps = extract_data_from_media(
-        FLAGS, preprocess, filenames, w, h)
-
+    image_data, all_reqested_images_orig, _, fps = extract_data_from_media(
+        FLAGS, preprocess_dtype, filenames, w, h)
     if len(image_data) == 0:
         print("Image data is missing. Aborting inference")
         return -1
 
     trt_inf_data = (triton_client, input_name,
                     output_name, dtype, max_batch_size)
+    # expand the size of the resulting bbox
+    x_expand, y_expand = 0, 0
     # if a model with only one input, i.e. edetlite4 is used,
     # the remaining two inputs are ignored
     image_data_list = [image_data,
                        np.array([FLAGS.det_threshold], dtype=np.float32),
-                       np.array([10, 0], dtype=np.float32)]
+                       np.array([x_expand, y_expand], dtype=np.float32)]
     # get inference results
     responses = get_inference_responses(
         image_data_list, FLAGS, trt_inf_data)
@@ -157,7 +160,7 @@ def run_demo_odet(media_filename,
 
 
 def main():
-    args = parse_arguments("Person Detection")
+    args = parse_arguments("Trt Server Person Detection")
     run_demo_odet(args.input_path,
                   model_name="edetlite4_modified",
                   inference_mode=args.media_type,
