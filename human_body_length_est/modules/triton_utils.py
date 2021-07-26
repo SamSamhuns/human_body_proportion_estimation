@@ -77,7 +77,7 @@ def extract_data_from_media(FLAGS, preprocess_func, media_filenames, w, h):
     all_req_imgs_orig = []
     all_req_imgs_orig_size = []
     fps = None
-
+    import traceback
     for filename in media_filenames:
         if FLAGS.inference_mode == "image":
             try:
@@ -92,6 +92,7 @@ def extract_data_from_media(FLAGS, preprocess_func, media_filenames, w, h):
                     all_req_imgs_orig.append(img)
                 fps = 1
             except Exception as e:
+                traceback.print_exc()
                 print(f"{e}. Failed to process image {filename}")
         elif FLAGS.inference_mode == "video":
             try:

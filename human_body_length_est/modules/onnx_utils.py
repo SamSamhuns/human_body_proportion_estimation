@@ -237,10 +237,16 @@ def letterbox_image(image, size):
 
 def clip_coords(boxes, img_shape):
     # Clip bounding xyxy bounding boxes to image shape (height, width)
-    boxes[:, 0].clamp_(0, img_shape[1])  # x1
-    boxes[:, 1].clamp_(0, img_shape[0])  # y1
-    boxes[:, 2].clamp_(0, img_shape[1])  # x2
-    boxes[:, 3].clamp_(0, img_shape[0])  # y2
+    if isinstance(boxes, torch.Tensor):
+        boxes[:, 0].clamp_(0, img_shape[1])  # x1
+        boxes[:, 1].clamp_(0, img_shape[0])  # y1
+        boxes[:, 2].clamp_(0, img_shape[1])  # x2
+        boxes[:, 3].clamp_(0, img_shape[0])  # y2
+    elif isinstance(boxes, np.ndarray):
+        boxes[:, 0] = np.clip(boxes[:, 0], 0, img_shape[1])  # x1
+        boxes[:, 1] = np.clip(boxes[:, 1], 0, img_shape[0])  # y1
+        boxes[:, 2] = np.clip(boxes[:, 2], 0, img_shape[1])  # x2
+        boxes[:, 3] = np.clip(boxes[:, 3], 0, img_shape[0])  # y2
 
 
 def scale_coords(img1_shape, coords, img0_shape, ratio_pad=None):
