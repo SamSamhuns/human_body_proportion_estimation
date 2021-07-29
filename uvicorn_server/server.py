@@ -5,7 +5,7 @@ import requests
 import uvicorn
 import json
 import sys
-from person_det_pose_est_trtserver_demo import run_pdet_pose
+from person_det_pose_edet4_trtserver import run_pdet_pose
 
 app = FastAPI(title="Human body proportion length estimation")
 

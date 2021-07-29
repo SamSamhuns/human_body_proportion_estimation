@@ -26,7 +26,7 @@ def postprocess(results, output_name):
 
 
 def run_pdet_pose(media_filename,
-                  model_name="ensemble_person_det_and_pose",
+                  model_name="ensemble_edet4_person_det_pose",
                   # list with input heights, def avg male height
                   person_height=[175],
                   inference_mode='image',
@@ -198,7 +198,7 @@ def run_pdet_pose(media_filename,
 def main():
     args = parse_arguments("Person Detection and Pose Estimation")
     run_pdet_pose(args.input_path,
-                  model_name="ensemble_person_det_and_pose",
+                  model_name="ensemble_edet4_person_det_pose",
                   inference_mode=args.media_type,
                   det_threshold=args.detection_threshold,
                   save_result_dir=args.output_dir,

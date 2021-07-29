@@ -6,7 +6,7 @@ Important: `docker-compose` requires version `v1.28.0+`. Install with `pip insta
 
 ```shell
 $ docker-compose build uvi_trt_server
-$ bash run_docker_uvicorn_fastapi_server.sh -g EXPOSED_HTTP_PORT # Wait for model loading (60s)
+$ bash run_docker_uvicorn_fastapi_server.sh -h EXPOSED_HTTP_PORT # Wait for model loading (60s)
 # check localhost:EXPOSED_HTTP_PORT for fastapi page
 ```
 
