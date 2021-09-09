@@ -102,6 +102,7 @@ def extract_data_from_media(FLAGS, preprocess_func, media_filenames, w, h):
 
                 # check num of channels
                 ret, frame = cap.read()
+                orig_shape = frame.shape
                 if ret and frame.shape[-1] != 3:
                     raise Exception("Video must have 3 channels")
 
@@ -120,7 +121,7 @@ def extract_data_from_media(FLAGS, preprocess_func, media_filenames, w, h):
                     i += 1
                 image_data = vid
                 all_req_imgs_orig = orig_vid
-                all_req_imgs_orig_size = orig_vid.shape if orig_vid != [] else []
+                all_req_imgs_orig_size = np.array([len(image_data), *orig_shape])
                 cap.release()
             except Exception as e:
                 print(f"{e}. Failed to process video {filename}")
