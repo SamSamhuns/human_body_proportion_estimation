@@ -118,8 +118,9 @@ def run_pdet_pose(media_filename,
     responses = get_inference_responses(image_data_list, FLAGS, trt_inf_data)
 
     if FLAGS.inference_mode == "video" and FLAGS.result_save_dir is not None:
+        _, vh, vw, _ = all_req_imgs_orig_size
         vid_writer = cv2.VideoWriter(f"{FLAGS.result_save_dir}/res_video.mp4",
-                                     cv2.VideoWriter_fourcc(*'mp4v'), fps, (w, h))
+                                     cv2.VideoWriter_fourcc(*'mp4v'), fps, (vw, vh))
 
     counter = 0
     final_result_list = []
@@ -133,7 +134,7 @@ def run_pdet_pose(media_filename,
             drawn_img = resize_maintaining_aspect(drawn_img, w, h)
             h, w, c = drawn_img.shape
         else:
-            h, w, c = all_req_imgs_orig_size[counter]
+            _, h, w, c = all_req_imgs_orig_size
 
         # de-normalize bbox coords
         boxes *= [h, w, h, w]
