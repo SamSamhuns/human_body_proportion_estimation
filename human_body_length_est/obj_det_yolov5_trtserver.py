@@ -158,12 +158,11 @@ def run_demo_odet(media_filename,
                             (x1 + 3, y1 - 4), 0, tl / 3, [0, 0, 255],
                             thickness=2, lineType=cv2.LINE_AA)
                 plot_one_box(det_box_xyxy, drawn_img, color=(255, 0, 0))
-            if FLAGS.result_save_dir is not None:
-                if FLAGS.inference_mode == "image":
-                    cv2.imwrite(
-                        f"{FLAGS.result_save_dir}/frame_{str(counter).zfill(6)}.jpg", drawn_img)
-                elif FLAGS.inference_mode == "video":
-                    vid_writer.write(drawn_img)
+            if FLAGS.inference_mode == "image":
+                cv2.imwrite(
+                    f"{FLAGS.result_save_dir}/frame_{str(counter).zfill(6)}.jpg", drawn_img)
+            elif FLAGS.inference_mode == "video":
+                vid_writer.write(drawn_img)
         counter += 1
     if FLAGS.debug:
         print(f"Time to process {counter} image(s)={time.time()-start_time}")
