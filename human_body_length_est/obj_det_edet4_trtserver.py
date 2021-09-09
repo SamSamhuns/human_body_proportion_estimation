@@ -99,7 +99,7 @@ def run_demo_odet(media_filename,
     image_input_idx = 0
     preprocess_dtype = partial(preprocess, new_type=nptype_dict[dtype[image_input_idx]])
     # all_reqested_images_orig will be [] if FLAGS.result_save_dir is None
-    image_data, all_reqested_images_orig, _, fps = extract_data_from_media(
+    image_data, all_reqested_images_orig, all_req_imgs_orig_size, fps = extract_data_from_media(
         FLAGS, preprocess_dtype, filenames, w, h)
     if len(image_data) == 0:
         print("Image data is missing. Aborting inference")
@@ -119,8 +119,9 @@ def run_demo_odet(media_filename,
         image_data_list, FLAGS, trt_inf_data)
 
     if FLAGS.inference_mode == "video" and FLAGS.result_save_dir is not None:
+        _, vh, vw, _ = all_req_imgs_orig_size
         vid_writer = cv2.VideoWriter(f"{FLAGS.result_save_dir}/res_video.mp4",
-                                     cv2.VideoWriter_fourcc(*'mp4v'), fps, (w, h))
+                                     cv2.VideoWriter_fourcc(*'mp4v'), fps, (vw, vh))
 
     counter = 0
     final_result_list = []
