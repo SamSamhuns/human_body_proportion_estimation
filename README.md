@@ -1,6 +1,8 @@
 # Person Detection, Pose and Body Proportion Estimation
 
-Important: `docker-compose` requires version `v1.28.0+`. Install with `pip install docker-compose` (inside a virtual env) to get latest version if it not updated.
+[Model Google Drive Download Link](https://drive.google.com/file/d/1hc2QtzLkAh3Ui2qT5FkPDwEe21KAwVgU/view?usp=sharing)
+
+Important: `docker-compose` requires version `v1.28.0+`. Install with `pip install docker-compose` (inside a virtual env) to get the latest version if it is not updated.
 
 ## Build and Run Docker image for uvicorn server with fastAPI exposed and triton-server in the backend
 
