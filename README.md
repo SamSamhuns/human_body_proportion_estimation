@@ -2,7 +2,7 @@
 
 ## Download model weights
 
-[Manual Google Drive Download Link](https://drive.google.com/file/d/1hc2QtzLkAh3Ui2qT5FkPDwEe21KAwVgU/view?usp=sharing), or use gdown to download.
+[Manual Google Drive Download Link](https://drive.google.com/file/d/1-pSTw19VAYbAKpPvWuYFNm9E3RwNYAIl/view?usp=sharing), or use gdown to download.
 
 ```bash
 python3 -m venv venv
@@ -10,7 +10,7 @@ source venv/bin/activate
 # inside venv/virtualenv/conda
 pip install gdown
 # download model weights
-gdown 1hc2QtzLkAh3Ui2qT5FkPDwEe21KAwVgU
+gdown 1-pSTw19VAYbAKpPvWuYFNm9E3RwNYAIl
 unzip models.zip
 rm models.zip
 ```
