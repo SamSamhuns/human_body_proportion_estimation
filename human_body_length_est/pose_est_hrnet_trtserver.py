@@ -1,13 +1,14 @@
+from functools import partial
+import time
+import os
+
 from modules.triton_utils import parse_model_grpc, get_client_and_model_metadata_config
 from modules.triton_utils import get_inference_responses, extract_data_from_media
 from modules.utils import Flag_config, parse_arguments, resize_maintaining_aspect
 from modules.pose_estimator import PoseEstimator
 
-from functools import partial
 import numpy as np
-import time
 import cv2
-import os
 FLAGS = Flag_config()
 
 

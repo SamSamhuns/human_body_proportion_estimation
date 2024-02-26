@@ -1,13 +1,14 @@
+from functools import partial
+import time
+import os
+
 from modules.triton_utils import parse_model_grpc, get_client_and_model_metadata_config
 from modules.triton_utils import get_inference_responses, extract_data_from_media
 from modules.utils import Flag_config, parse_arguments, resize_maintaining_aspect, plot_one_box
 from modules.pose_estimator import PoseEstimator
 
-from functools import partial
 import numpy as np
-import time
 import cv2
-import os
 FLAGS = Flag_config()
 
 
@@ -54,8 +55,6 @@ def run_pdet_pose(media_filename,
     # nose, reye, leye, rear, lear, rshoulder,
     # lshoulder, relbow, lelbow, rwrist, lwrist,
     # rhip, lhip, rknee, lknee, rankle, lankle
-    # FLAGS.KEYPOINT_THRES_LIST = [0.65, 0.76, 0.73, 0.56, 0.44, 0.24, 0.13, 0.13, 0.34,
-    #                              0.44, 0.38, 0.11, 0.13, 0.24, 0.15, 0.35, 0.30]
     FLAGS.KEYPOINT_THRES_LIST = [0.45, 0.46, 0.45, 0.40, 0.34, 0.10, 0.10, 0.10, 0.10,
                                  0.24, 0.30, 0.11, 0.10, 0.15, 0.10, 0.25, 0.20]
     start_time = time.time()
@@ -97,7 +96,8 @@ def run_pdet_pose(media_filename,
     nptype_dict = {"UINT8": np.uint8, "FP32": np.float32, "FP16": np.float16}
     # Important, make sure the first input is the input image
     image_input_idx = 0
-    preprocess_dtype = partial(preprocess, new_type=nptype_dict[dtype[image_input_idx]])
+    preprocess_dtype = partial(
+        preprocess, new_type=nptype_dict[dtype[image_input_idx]])
     # all_req_imgs_orig will be [] if FLAGS.result_save_dir is None
     image_data, all_req_imgs_orig, all_req_imgs_orig_size, fps = extract_data_from_media(
         FLAGS, preprocess_dtype, filenames, w, h)

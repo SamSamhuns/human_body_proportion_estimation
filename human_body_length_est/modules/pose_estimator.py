@@ -112,17 +112,20 @@ class PoseEstimator:
             ignored_kp_idx) if ignored_kp_idx is not None else {}
         for i, (x, y) in enumerate(keypts):
             if i not in ignored_kp_idx_set:
-                cv2.putText(frame,
-                            f"{i}",
-                            (x, y),
-                            fontFace=cv2.FONT_HERSHEY_SIMPLEX,
-                            fontScale=0.5,
-                            color=color)
-                cv2.circle(frame,
-                           (x, y),
-                           frame.shape[0] // 150,
-                           color,
-                           thickness=-1)
+                x, y = int(x), int(y)
+                cv2.putText(
+                    frame,
+                    f"{i}",
+                    (x, y),
+                    fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+                    fontScale=0.5,
+                    color=color)
+                cv2.circle(
+                    frame,
+                    (x, y),
+                    frame.shape[0] // 150,
+                    color,
+                    thickness=-1)
 
     @staticmethod
     def _get_kp_dict(keypts, ignored_kp_idx) -> Dict:
@@ -182,6 +185,7 @@ class PoseEstimator:
         for part_name, part_kp in kp_dict.items():
             if part_kp is not None:  # if required points are not missing
                 p1, p2 = map(tuple, part_kp)
+                p1, p2 = list(map(int, p1)), list(map(int, p2))
                 cv2.line(frame, p1, p2, color, thickness)
 
     @staticmethod

@@ -127,3 +127,6 @@ checkpoints
 # results from models
 results
 output
+
+# model files
+models
