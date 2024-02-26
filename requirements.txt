@@ -1,0 +1,11 @@
+fastapi==0.110.0
+matplotlib==3.8.3
+nvidia-pyindex==1.0.9
+onnxruntime==1.17.1
+opencv-python==4.9.0.80
+pillow==10.2.0
+python-multipart==0.0.9
+requests==2.31.0
+tritonclient[grpc]==2.42.0
+uvicorn==0.27.1
+wheel==0.42.0
