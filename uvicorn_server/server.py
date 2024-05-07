@@ -22,7 +22,7 @@ class InputModel(BaseModel):
         person_height (int): The height of the person in centimeters. Default is 175 cm.
         image_file (bytes): The image file in bytes on which the estimation will be performed.
     """
-    back_url: str = None
+    back_url: str = ""
     threshold: float = 0.80
     person_height: int = 175
     image_file: bytes
@@ -58,7 +58,7 @@ class ModelProcessTask():
             grpc_port="8081",  # GRPC is always set to this
             debug=False)
         self.response_data["code"] = "success"
-        if len(result) == 0 or len(result[0]) < 3:
+        if result == -1 or len(result) == 0 or len(result[0]) < 3:
             self.response_data["msg"] = "No humans detected"
             body_proportion_lengths = {}
         else:
@@ -67,7 +67,7 @@ class ModelProcessTask():
         self.response_data["body_proportion_lengths_(cm)"] = body_proportion_lengths
 
         try:
-            if self.input_data.back_url is not None:
+            if self.input_data.back_url:
                 headers = {"Content-Type": "application/json"}
                 print("RESPONSE DATA", self.response_data)
                 requests.request(
@@ -103,7 +103,7 @@ async def body_proportion_length_est_file(file: UploadFile = File(...),
         file_bytes_content = file.file.read()
         input_data = InputModel(
             person_height=person_height_in_cm,
-            back_url=None,
+            back_url="",
             threshold=threshold,
             image_file=file_bytes_content)
         task = ModelProcessTask(run_pdet_pose,
