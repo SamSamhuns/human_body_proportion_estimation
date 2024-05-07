@@ -36,6 +36,10 @@ def run_pdet_pose(media_filename,
                   save_result_dir=None,
                   grpc_port='8994',
                   debug=True):
+    """
+    Run pose detection & heatmap extraction on media file and
+    return pose estimate keypoints, score, heatmap and estimates of body parts based on height in cm.
+    """
     FLAGS.media_filename = media_filename
     FLAGS.model_name = model_name
     FLAGS.p_height = person_height
@@ -119,14 +123,15 @@ def run_pdet_pose(media_filename,
 
     if FLAGS.inference_mode == "video" and FLAGS.result_save_dir is not None:
         _, vh, vw, _ = all_req_imgs_orig_size
-        vid_writer = cv2.VideoWriter(f"{FLAGS.result_save_dir}/res_video.mp4",
-                                     cv2.VideoWriter_fourcc(*'mp4v'), fps, (vw, vh))
+        vid_writer = cv2.VideoWriter(
+            f"{FLAGS.result_save_dir}/res_video.mp4",
+            cv2.VideoWriter_fourcc(*'mp4v'), fps, (vw, vh))
 
     counter = 0
-    final_result_list = []
+    box_hmap_list = []
     for response in responses:
         boxes, heatmaps = postprocess(response, output_name)
-        final_result_list.append([boxes, heatmaps])
+        box_hmap_list.append([boxes, heatmaps])
 
         # display boxes on image array
         if FLAGS.result_save_dir is not None:
@@ -163,7 +168,7 @@ def run_pdet_pose(media_filename,
             pixel_to_cm = height_cm / height_pixel
             dist_dict = PoseEstimator.get_keypoint_dist_dict(
                 pixel_to_cm, keypts, ignored_kp_idx=ig_kp_idx)
-            final_result_list[-1].append(dist_dict)
+            box_hmap_list[-1].append(dist_dict)
 
             if FLAGS.result_save_dir is not None:
                 # uncomment to plot bounding boxes
@@ -193,18 +198,19 @@ def run_pdet_pose(media_filename,
         print(
             f"Time to process {counter} image(s)={time.time()-start_time:.3f}s")
 
-    return final_result_list
+    return box_hmap_list
 
 
 def main():
     args = parse_arguments("Person Detection and Pose Estimation")
-    run_pdet_pose(args.input_path,
+    box_hmap_list = run_pdet_pose(args.input_path,
                   model_name="ensemble_edet4_person_det_pose",
                   inference_mode=args.media_type,
                   det_threshold=args.detection_threshold,
                   save_result_dir=args.output_dir,
                   grpc_port=args.grpc_port,
                   debug=args.debug)
+    print(box_hmap_list)
 
 
 if __name__ == "__main__":
