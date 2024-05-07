@@ -19,9 +19,9 @@ RUN python3 -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 # install python dependencies
-RUN pip install wheel==0.42.0 \
+RUN pip install wheel==0.43.0 \
     nvidia-pyindex==1.0.9 \
-    tritonclient[grpc]==2.42.0
+    tritonclient[grpc]==2.45.0
 
 # copy all model files into docker container
 RUN mkdir -p "${WORKDIR}/models"
