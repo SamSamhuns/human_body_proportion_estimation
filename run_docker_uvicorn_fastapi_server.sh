@@ -1,5 +1,7 @@
 #!/bin/bash
 
+def_cont_name=body_est_uvi_trt
+
 # check for 4 cmd args
 if [ $# -ne 2 ]
   then
@@ -18,8 +20,16 @@ while [[ "$#" -gt 0 ]]; do
     shift
 done
 
+# Check if the container is running
+if [ "$(docker ps -q -f name=$def_cont_name)" ]; then
+    echo "Stopping docker container '$def_cont_name'"
+    docker stop "$def_cont_name"
+    docker rm "$def_cont_name"
+    echo "Stopped & removed container '$def_cont_name'"
+fi
+
 echo "Running docker with exposed uvicorn+fastapi server http port: $http"
-docker-compose run -d \
+docker-compose run -d --rm \
               -p $http:8080 \
-              --name body_est_uvi_trt \
+              --name "$def_cont_name" \
               uvi_trt_server
