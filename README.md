@@ -20,7 +20,7 @@ source venv/bin/activate
 # inside venv/virtualenv/conda
 pip install gdown
 # download model weights
-gdown 1-pSTw19VAYbAKpPvWuYFNm9E3RwNYAIl
+gdown 1W1OLyrOdKrWPSWDNnLW3WfQkwNCnknqA
 unzip models.zip
 rm models.zip
 ```
