@@ -4,7 +4,7 @@ nvidia-pyindex==1.0.9
 onnxruntime==1.17.3
 opencv-python==4.9.0.80
 pillow==10.3.0
-python-multipart==0.0.9
+python-multipart==0.0.18
 requests==2.32.0
 tritonclient[grpc]==2.45.0
 uvicorn==0.29.0
