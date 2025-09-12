@@ -1,19 +1,19 @@
 #!/bin/bash
 
-def_cont_name=body_est_uvi_trt
+def_cont_name=body_est_trt
 
 # check for 4 cmd args
 if [ $# -ne 2 ]
   then
-    echo "http port must be specified for triton-server."
-		echo "eg. \$ bash build_run_docker.sh -h 8080"
+    echo "GRPC port must be specified for triton-server."
+		echo "eg. \$ bash build_run_docker.sh -p 8080"
 		exit
 fi
 
-# get the http port
+# get the grpc port
 while [[ "$#" -gt 0 ]]; do
     case $1 in
-        -h|--http) http="$2"; shift ;;
+        -p|--grpc) grpc="$2"; shift ;;
         *) echo "Unknown parameter passed: $1";
 	exit 1 ;;
     esac
@@ -28,8 +28,8 @@ if [ "$(docker ps -q -f name=$def_cont_name)" ]; then
     echo "Stopped & removed container '$def_cont_name'"
 fi
 
-echo "Running docker with exposed uvicorn+fastapi server http port: $http"
-docker-compose run -d --rm \
-              -p $http:8080 \
+echo "Running docker with exposed triton-server grpc port: $grpc"
+docker compose run -d --rm \
+              -p $grpc:8081 \
               --name "$def_cont_name" \
-              uvi_trt_server
+              trt_server

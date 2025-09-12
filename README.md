@@ -1,18 +1,19 @@
 # Person Detection, Pose and Body Proportion Estimation
 
-[![Python 3.9](https://img.shields.io/badge/python-3.9-green.svg)](https://www.python.org/downloads/release/python-390/)
+[![Python 3.10](https://img.shields.io/badge/python-3.10-green.svg)](https://www.python.org/downloads/release/python-3100/)[![Python 3.11](https://img.shields.io/badge/python-3.11-green.svg)](https://www.python.org/downloads/release/python-3110/)
 
 - [Person Detection, Pose and Body Proportion Estimation](#person-detection-pose-and-body-proportion-estimation)
   - [Download model weights](#download-model-weights)
   - [Requirements](#requirements)
-  - [Build and run docker image for uvicorn server with fastAPI exposed and triton-server in the backend](#build-and-run-docker-image-for-uvicorn-server-with-fastapi-exposed-and-triton-server-in-the-backend)
-  - [Build and run docker image for triton-server only](#build-and-run-docker-image-for-triton-server-only)
+    - [Build and run docker image for uvicorn server with fastAPI exposed and triton-server in the backend](#build-and-run-docker-image-for-uvicorn-server-with-fastapi-exposed-and-triton-server-in-the-backend)
+    - [Build and run docker image for triton-server only](#build-and-run-docker-image-for-triton-server-only)
+    - [Run triton-server container and test](#run-triton-server-container-and-test)
   - [CPU mode](#cpu-mode)
   - [Performance Benchmarking](#performance-benchmarking)
 
 ## Download model weights
 
-[Manual Google Drive Download Link](https://drive.google.com/file/d/1-pSTw19VAYbAKpPvWuYFNm9E3RwNYAIl/view?usp=sharing), or use gdown to download.
+[Google Drive Link](https://drive.google.com/file/d/1W1OLyrOdKrWPSWDNnLW3WfQkwNCnknqA/view?usp=sharing), or use `gdown` to download.
 
 ```bash
 python3 -m venv venv
@@ -27,39 +28,42 @@ rm models.zip
 
 ## Requirements
 
-Install [Docker compose](https://docs.docker.com/compose/install/) if not already present (Recommended). 
+Tested with [Docker compose](https://docs.docker.com/compose/install/) version `v2.28.1`.
 
-It can also be installed inside a python venv.
-
-```shell
-pip install docker-compose==1.29.2
-pip install docker==6.1.3
-```
-
-## Build and run docker image for uvicorn server with fastAPI exposed and triton-server in the backend
+### Build and run docker image for uvicorn server with fastAPI exposed and triton-server in the backend
 
 ```shell
-docker-compose build uvi_trt_server
-bash run_docker_uvicorn_fastapi_server.sh -h EXPOSED_HTTP_PORT # Wait for model loading (60s)
+docker compose build uvi_trt_server
+bash scripts/run_docker_uvicorn_fastapi_server.sh -h EXPOSED_HTTP_PORT # Wait for model loading (60s)
 # check localhost:EXPOSED_HTTP_PORT for fastapi page
 ```
 
-## Build and run docker image for triton-server only
+### Build and run docker image for triton-server only
+
+Use [poetry](https://python-poetry.org/) to install requirements (Recommended):
 
 ```shell
-# set a python virtual env/conda env
-python -m venv venv
-source venv/bin/activate
-# install dependencies
-pip install -r requirements.txt
-# build triton-server container
-docker-compose build trt_server
+poetry install
 ```
 
-**Run triton-server container and test**
+Or, use [pip](https://pip.pypa.io/en/stable/) to install requirements:
 
 ```shell
-bash run_docker_triton_server.sh -p 8081 # 8081 is the exposed GRPC port. Wait for model loading (60s)
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
+Build triton-server container
+
+```shell
+docker compose build trt_server
+```
+
+### Run triton-server container and test
+
+```shell
+bash scripts/run_docker_triton_server.sh -p 8081 # 8081 is the exposed GRPC port. Wait for model loading (60s)
 # test to verify working container
 python human_body_length_est/person_det_pose_edet4_trtserver.py
 # to start the uvicorn server, default port is 8080

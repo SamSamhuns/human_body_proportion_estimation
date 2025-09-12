@@ -1,6 +1,6 @@
-version:  '3.3'
 services:
   uvi_trt_server:
+    image: uvi_trt_server
     build:
       context: .
       dockerfile: ./docker/uvicorn_trt_server/Dockerfile
@@ -16,6 +16,7 @@ services:
             device_ids: ['0']
             capabilities: [gpu]
   trt_server:
+    image: trt_server
     build:
       context: .
       dockerfile: ./docker/trt_server/Dockerfile
