@@ -22,13 +22,14 @@ class InputModel(BaseModel):
         person_height (int): The height of the person in centimeters. Default is 175 cm.
         image_file (bytes): The image file in bytes on which the estimation will be performed.
     """
+
     back_url: str = ""
     threshold: float = 0.80
     person_height: int = 175
     image_file: bytes
 
 
-class ModelProcessTask():
+class ModelProcessTask:
     """
     A class to handle the processing of the model inference asynchronously.
 
@@ -56,7 +57,8 @@ class ModelProcessTask():
             det_threshold=threshold,
             person_height=[person_height],
             grpc_port="8081",  # GRPC is always set to this
-            debug=False)
+            debug=False,
+        )
         self.response_data["code"] = "success"
         if result == -1 or len(result) == 0 or len(result[0]) < 3:
             self.response_data["msg"] = "No humans detected"
@@ -75,7 +77,8 @@ class ModelProcessTask():
                     url=self.input_data.back_url,
                     headers=headers,
                     data=json.dumps(self.response_data),
-                    timeout=(3, 100))
+                    timeout=(3, 100),
+                )
                 print("successfully sent")
         except Exception as e:
             traceback.print_exc()
@@ -83,9 +86,11 @@ class ModelProcessTask():
 
 
 @app.post("/body_proportion_length_estimation_file")
-async def body_proportion_length_est_file(file: UploadFile = File(...),
-                                          person_height_in_cm: int = Form(175),
-                                          threshold: float = Form(0.70)):
+async def body_proportion_length_est_file(
+    file: UploadFile = File(...),
+    person_height_in_cm: int = Form(175),
+    threshold: float = Form(0.70),
+):
     """
     Endpoint for estimating body proportion lengths from an uploaded file.
 
@@ -105,31 +110,33 @@ async def body_proportion_length_est_file(file: UploadFile = File(...),
             person_height=person_height_in_cm,
             back_url="",
             threshold=threshold,
-            image_file=file_bytes_content)
-        task = ModelProcessTask(run_pdet_pose,
-                                input_data=input_data)
+            image_file=file_bytes_content,
+        )
+        task = ModelProcessTask(run_pdet_pose, input_data=input_data)
         task.run()
         response_data = task.response_data
 
     except Exception as e:
         traceback.print_exc()
         print(e)
-        response_data["msg"] = "Failed to run inference on image. Please use an image with one fully visible human."
+        response_data["msg"] = (
+            "Failed to run inference on image. Please use an image with one fully visible human."
+        )
         response_data["code"] = "failed"
     return response_data
 
 
 @app.get("/")
 def index():
-    return {"Welcome to Human Body Proportion Estimation Web Service": "Please visit /docs"}
+    return {
+        "Welcome to Human Body Proportion Estimation Web Service": "Please visit /docs"
+    }
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     if len(sys.argv) == 1:
-        uvicorn.run("server:app", host='0.0.0.0',
-                    port=8080, workers=1)
+        uvicorn.run("server:app", host="0.0.0.0", port=8080, workers=1)
 
     elif len(sys.argv) == 2:
         print("Using port: " + sys.argv[1])
-        uvicorn.run("server:app", host='0.0.0.0',
-                    port=int(sys.argv[1]), workers=1)
+        uvicorn.run("server:app", host="0.0.0.0", port=int(sys.argv[1]), workers=1)

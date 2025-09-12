@@ -30,10 +30,13 @@ class DataStreamer(object):
         preprocessesing function applied to PIL images
     """
 
-    def __init__(self, src_path: str, media_type: str = "image", preprocess_func: Callable = None):
-        if media_type not in {'video', 'image'}:
+    def __init__(
+        self, src_path: str, media_type: str = "image", preprocess_func: Callable = None
+    ):
+        if media_type not in {"video", "image"}:
             raise NotImplementedError(
-                f"{media_type} not supported in streamer. Use video or image")
+                f"{media_type} not supported in streamer. Use video or image"
+            )
         self.img_path_list = []
         self.vid_path_list = []
         self.idx = 0
@@ -46,31 +49,30 @@ class DataStreamer(object):
                 self.vcap = cv2.VideoCapture(src_path)
             elif osp.isdir(src_path):
                 raise NotImplementedError(
-                    f"dir iteration supported for video media_type. {src_path} must be a video file")
+                    f"dir iteration supported for video media_type. {src_path} must be a video file"
+                )
         elif media_type == "image":
             if osp.isfile(src_path):
                 self.img_path_list.append(src_path)
             elif osp.isdir(src_path):
-                img_exts = ['*.png', '*.PNG', '*.jpg', '*.jpeg']
+                img_exts = ["*.png", "*.PNG", "*.jpg", "*.jpeg"]
                 for ext in img_exts:
-                    self.img_path_list.extend(
-                        glob.glob(osp.join(src_path, ext)))
+                    self.img_path_list.extend(glob.glob(osp.join(src_path, ext)))
 
     def __iter__(self):
         return self
 
     def __next__(self):
         orig_img = None
-        if self.media_type == 'image':
+        if self.media_type == "image":
             if self.idx < len(self.img_path_list):
                 orig_img = Image.open(self.img_path_list[self.idx])
                 self.idx += 1
-        elif self.media_type == 'video':
+        elif self.media_type == "video":
             if self.idx < len(self.vid_path_list):
                 ret, frame = self.vcap.read()
                 if ret:
-                    orig_img = Image.fromarray(
-                        cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+                    orig_img = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
                 else:
                     self.idx += 1
         if orig_img is not None:
@@ -84,36 +86,59 @@ class DataStreamer(object):
 
 def parse_arguments(desc):
     parser = argparse.ArgumentParser(description=desc)
-    parser.add_argument('-i', '--input_path',
-                        required=True,  type=str,
-                        help='Path to Input: Video File or Image file')
-    parser.add_argument('-m', '--media_type',
-                        default='image', type=str,
-                        choices=('image', 'video'),
-                        help='Type of Input: image, video. Default: image')
-    parser.add_argument('-ox', '--onnx_path',
-                        default="yolov5/yolov5s.onnx",  type=str,
-                        help='Path to ONNX model. Default: yolov5/yolov5s.onnx')
-    parser.add_argument('-o', '--output_dir',
-                        default='output',  type=str,
-                        help='Output directory. Default: output')
-    parser.add_argument('-c', '--num_classes',
-                        default=80,  type=int,
-                        help='Num of classes. Default: 80')
-    parser.add_argument('-t', '--detection_threshold',
-                        default=0.6,  type=float,
-                        help='Detection Threshold. Default: 0.6')
-    parser.add_argument('-g', '--grpc_port',
-                        default="8994",
-                        help='grpc port where triton-server is exposed. Default: 8994')
-    parser.add_argument('--debug',
-                        default=True,
-                        help='Debug Mode')
+    parser.add_argument(
+        "-i",
+        "--input_path",
+        required=True,
+        type=str,
+        help="Path to Input: Video File or Image file",
+    )
+    parser.add_argument(
+        "-m",
+        "--media_type",
+        default="image",
+        type=str,
+        choices=("image", "video"),
+        help="Type of Input: image, video. Default: image",
+    )
+    parser.add_argument(
+        "-ox",
+        "--onnx_path",
+        default="yolov5/yolov5s.onnx",
+        type=str,
+        help="Path to ONNX model. Default: yolov5/yolov5s.onnx",
+    )
+    parser.add_argument(
+        "-o",
+        "--output_dir",
+        default="output",
+        type=str,
+        help="Output directory. Default: output",
+    )
+    parser.add_argument(
+        "-c", "--num_classes", default=80, type=int, help="Num of classes. Default: 80"
+    )
+    parser.add_argument(
+        "-t",
+        "--detection_threshold",
+        default=0.6,
+        type=float,
+        help="Detection Threshold. Default: 0.6",
+    )
+    parser.add_argument(
+        "-g",
+        "--grpc_port",
+        default="8994",
+        help="grpc port where triton-server is exposed. Default: 8994",
+    )
+    parser.add_argument("--debug", default=True, help="Debug Mode")
 
     return parser.parse_args()
 
 
-def plot_one_box(bbox, img, wscale=1, hscale=1, color=None, label=None, line_thickness=None) -> None:
+def plot_one_box(
+    bbox, img, wscale=1, hscale=1, color=None, label=None, line_thickness=None
+) -> None:
     """
     Plot one bounding box on image img
     args
@@ -122,8 +147,9 @@ def plot_one_box(bbox, img, wscale=1, hscale=1, color=None, label=None, line_thi
         wscale: multiplication factor for width (default 1 if no scaling required)
         hscale: multiplication factor for height (default 1 if no scaling required)
     """
-    tl = line_thickness or round(
-        0.002 * (img.shape[0] + img.shape[1]) / 2) + 1  # line/font thickness
+    tl = (
+        line_thickness or round(0.002 * (img.shape[0] + img.shape[1]) / 2) + 1
+    )  # line/font thickness
     color = color or [random.randint(0, 255) for _ in range(3)]
     c1 = (int(bbox[0] * wscale), int(bbox[1] * hscale))
     c2 = (int(bbox[2] * wscale), int(bbox[3] * hscale))
@@ -133,8 +159,16 @@ def plot_one_box(bbox, img, wscale=1, hscale=1, color=None, label=None, line_thi
         t_size = cv2.getTextSize(label, 0, fontScale=tl / 3, thickness=tf)[0]
         c2 = c1[0] + t_size[0], c1[1] - t_size[1] - 3
         cv2.rectangle(img, c1, c2, color, -1, cv2.LINE_AA)  # filled
-        cv2.putText(img, label, (c1[0], c1[1] - 2), 0, tl / 3,
-                    [225, 255, 255], thickness=tf, lineType=cv2.LINE_AA)
+        cv2.putText(
+            img,
+            label,
+            (c1[0], c1[1] - 2),
+            0,
+            tl / 3,
+            [225, 255, 255],
+            thickness=tf,
+            lineType=cv2.LINE_AA,
+        )
 
 
 def resize_maintaining_aspect(img, width, height):

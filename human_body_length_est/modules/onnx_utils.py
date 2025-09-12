@@ -15,18 +15,17 @@ def w_bbox_iou(box1, box2, x1y1x2y2=True):
         b2_x1, b2_x2 = box2[:, 0] - box2[:, 2] / 2, box2[:, 0] + box2[:, 2] / 2
         b2_y1, b2_y2 = box2[:, 1] - box2[:, 3] / 2, box2[:, 1] + box2[:, 3] / 2
     else:
-        b1_x1, b1_y1, b1_x2, b1_y2 = box1[:,
-                                          0], box1[:, 1], box1[:, 2], box1[:, 3]
-        b2_x1, b2_y1, b2_x2, b2_y2 = box2[:,
-                                          0], box2[:, 1], box2[:, 2], box2[:, 3]
+        b1_x1, b1_y1, b1_x2, b1_y2 = box1[:, 0], box1[:, 1], box1[:, 2], box1[:, 3]
+        b2_x1, b2_y1, b2_x2, b2_y2 = box2[:, 0], box2[:, 1], box2[:, 2], box2[:, 3]
 
     inter_rect_x1 = torch.max(b1_x1, b2_x1)
     inter_rect_y1 = torch.max(b1_y1, b2_y1)
     inter_rect_x2 = torch.min(b1_x2, b2_x2)
     inter_rect_y2 = torch.min(b1_y2, b2_y2)
 
-    inter_area = torch.clamp(inter_rect_x2 - inter_rect_x1 + 1, min=0) * \
-        torch.clamp(inter_rect_y2 - inter_rect_y1 + 1, min=0)
+    inter_area = torch.clamp(inter_rect_x2 - inter_rect_x1 + 1, min=0) * torch.clamp(
+        inter_rect_y2 - inter_rect_y1 + 1, min=0
+    )
 
     b1_area = (b1_x2 - b1_x1 + 1) * (b1_y2 - b1_y1 + 1)
     b2_area = (b2_x2 - b2_x1 + 1) * (b2_y2 - b2_y1 + 1)
@@ -57,11 +56,13 @@ def w_non_max_suppression(prediction, num_classes, conf_thres=0.5, nms_thres=0.4
 
         # Obtain type and its confidence
         class_conf, class_pred = torch.max(
-            image_pred[:, 5:5 + num_classes], 1, keepdim=True)
+            image_pred[:, 5 : 5 + num_classes], 1, keepdim=True
+        )
 
         # content obtained is (x1, y1, x2, y2, obj_conf, class_conf, class_pred)
         detections = torch.cat(
-            (image_pred[:, :5], class_conf.float(), class_pred.float()), 1)
+            (image_pred[:, :5], class_conf.float(), class_pred.float()), 1
+        )
 
         # Type of acquisition
         unique_labels = detections[:, -1].cpu().unique()
@@ -73,8 +74,7 @@ def w_non_max_suppression(prediction, num_classes, conf_thres=0.5, nms_thres=0.4
             # Obtain all prediction results after a certain type of preliminary screening
             detections_class = detections[detections[:, -1] == c]
             # Sort according to the confidence of the existence of the object
-            _, conf_sort_index = torch.sort(
-                detections_class[:, 4], descending=True)
+            _, conf_sort_index = torch.sort(detections_class[:, 4], descending=True)
             detections_class = detections_class[conf_sort_index]
             # Non-maximum suppression
             max_detections = []
@@ -89,8 +89,11 @@ def w_non_max_suppression(prediction, num_classes, conf_thres=0.5, nms_thres=0.4
             # Stacked
             max_detections = torch.cat(max_detections).data
             # Add max detections to outputs
-            output[image_i] = max_detections if output[image_i] is None else torch.cat(
-                (output[image_i], max_detections))
+            output[image_i] = (
+                max_detections
+                if output[image_i] is None
+                else torch.cat((output[image_i], max_detections))
+            )
 
     return output
 
@@ -116,13 +119,27 @@ def box_iou(box1, box2):
     area2 = box_area(box2.T)
 
     # inter(N,M) = (rb(N,M,2) - lt(N,M,2)).clamp(0).prod(2)
-    inter = (torch.min(box1[:, None, 2:], box2[:, 2:]) -
-             torch.max(box1[:, None, :2], box2[:, :2])).clamp(0).prod(2)
+    inter = (
+        (
+            torch.min(box1[:, None, 2:], box2[:, 2:])
+            - torch.max(box1[:, None, :2], box2[:, :2])
+        )
+        .clamp(0)
+        .prod(2)
+    )
     # iou = inter / (area1 + area2 - inter)
     return inter / (area1[:, None] + area2 - inter)
 
 
-def non_max_suppression(prediction, conf_thres=0.25, iou_thres=0.45, classes=None, agnostic=False, multi_label=False, labels=()):
+def non_max_suppression(
+    prediction,
+    conf_thres=0.25,
+    iou_thres=0.45,
+    classes=None,
+    agnostic=False,
+    multi_label=False,
+    labels=(),
+):
     """Runs Non-Maximum Suppression (NMS) on inference results
 
     Returns:
@@ -133,8 +150,12 @@ def non_max_suppression(prediction, conf_thres=0.25, iou_thres=0.45, classes=Non
     xc = prediction[..., 4] > conf_thres  # candidates
 
     # Checks
-    assert 0 <= conf_thres <= 1, f'Invalid Confidence threshold {conf_thres}, valid values are between 0.0 and 1.0'
-    assert 0 <= iou_thres <= 1, f'Invalid IoU {iou_thres}, valid values are between 0.0 and 1.0'
+    assert 0 <= conf_thres <= 1, (
+        f"Invalid Confidence threshold {conf_thres}, valid values are between 0.0 and 1.0"
+    )
+    assert 0 <= iou_thres <= 1, (
+        f"Invalid IoU {iou_thres}, valid values are between 0.0 and 1.0"
+    )
 
     # Settings
     # (pixels) maximum and minimum box width and height
@@ -147,8 +168,7 @@ def non_max_suppression(prediction, conf_thres=0.25, iou_thres=0.45, classes=Non
     merge = False  # use merge-NMS
 
     t = time.time()
-    output = [torch.zeros((0, 6), device=prediction.device)
-              ] * prediction.shape[0]
+    output = [torch.zeros((0, 6), device=prediction.device)] * prediction.shape[0]
     for xi, x in enumerate(prediction):  # image index, image inference
         # Apply constraints
         # x[((x[..., 2:4] < min_wh) | (x[..., 2:4] > max_wh)).any(1), 4] = 0  # width-height
@@ -179,8 +199,7 @@ def non_max_suppression(prediction, conf_thres=0.25, iou_thres=0.45, classes=Non
             x = torch.cat((box[i], x[i, j + 5, None], j[:, None].float()), 1)
         else:  # best class only
             conf, j = x[:, 5:].max(1, keepdim=True)
-            x = torch.cat((box, conf, j.float()), 1)[
-                conf.view(-1) > conf_thres]
+            x = torch.cat((box, conf, j.float()), 1)[conf.view(-1) > conf_thres]
 
         # Filter by class
         if classes is not None:
@@ -205,18 +224,19 @@ def non_max_suppression(prediction, conf_thres=0.25, iou_thres=0.45, classes=Non
         i = torchvision.ops.nms(boxes, scores, iou_thres)  # NMS
         if i.shape[0] > max_det:  # limit detections
             i = i[:max_det]
-        if merge and (1 < n < 3E3):  # Merge NMS (boxes merged using weighted mean)
+        if merge and (1 < n < 3e3):  # Merge NMS (boxes merged using weighted mean)
             # update boxes as boxes(i,4) = weights(i,n) * boxes(n,4)
             iou = box_iou(boxes[i], boxes) > iou_thres  # iou matrix
             weights = iou * scores[None]  # box weights
-            x[i, :4] = torch.mm(weights, x[:, :4]).float(
-            ) / weights.sum(1, keepdim=True)  # merged boxes
+            x[i, :4] = torch.mm(weights, x[:, :4]).float() / weights.sum(
+                1, keepdim=True
+            )  # merged boxes
             if redundant:
                 i = i[iou.sum(1) > 1]  # require redundancy
 
         output[xi] = x[i]
         if (time.time() - t) > time_limit:
-            print(f'WARNING: NMS time limit {time_limit}s exceeded')
+            print(f"WARNING: NMS time limit {time_limit}s exceeded")
             break  # time limit exceeded
 
     return output
@@ -230,7 +250,7 @@ def letterbox_image(image, size):
     nh = int(ih * scale)
 
     image = image.resize((nw, nh), Image.BICUBIC)
-    new_image = Image.new('RGB', size, (128, 128, 128))
+    new_image = Image.new("RGB", size, (128, 128, 128))
     new_image.paste(image, ((w - nw) // 2, (h - nh) // 2))
     return new_image
 
@@ -253,8 +273,10 @@ def scale_coords(img1_shape, coords, img0_shape, ratio_pad=None):
     # Rescale coords (xyxy) from img1_shape to img0_shape
     if ratio_pad is None:  # calculate from img0_shape
         gain = max(img1_shape) / max(img0_shape)  # gain  = old / new
-        pad = (img1_shape[1] - img0_shape[1] * gain) / \
-            2, (img1_shape[0] - img0_shape[0] * gain) / 2  # wh padding
+        pad = (
+            (img1_shape[1] - img0_shape[1] * gain) / 2,
+            (img1_shape[0] - img0_shape[0] * gain) / 2,
+        )  # wh padding
     else:
         gain = ratio_pad[0][0]
         pad = ratio_pad[1]
@@ -268,8 +290,7 @@ def scale_coords(img1_shape, coords, img0_shape, ratio_pad=None):
 
 def xyxy2xywh(x):
     # Convert nx4 boxes from [x1, y1, x2, y2] to [x, y, w, h] where xy1=top-left, xy2=bottom-right
-    y = torch.zeros_like(x) if isinstance(
-        x, torch.Tensor) else np.zeros_like(x)
+    y = torch.zeros_like(x) if isinstance(x, torch.Tensor) else np.zeros_like(x)
     y[:, 0] = (x[:, 0] + x[:, 2]) / 2  # x center
     y[:, 1] = (x[:, 1] + x[:, 3]) / 2  # y center
     y[:, 2] = x[:, 2] - x[:, 0]  # width
@@ -279,8 +300,7 @@ def xyxy2xywh(x):
 
 def xywh2xyxy(x):
     # Convert nx4 boxes from [x, y, w, h] to [x1, y1, x2, y2] where xy1=top-left, xy2=bottom-right
-    y = torch.zeros_like(x) if isinstance(
-        x, torch.Tensor) else np.zeros_like(x)
+    y = torch.zeros_like(x) if isinstance(x, torch.Tensor) else np.zeros_like(x)
     y[:, 0] = x[:, 0] - x[:, 2] / 2  # top left x
     y[:, 1] = x[:, 1] - x[:, 3] / 2  # top left y
     y[:, 2] = x[:, 0] + x[:, 2] / 2  # bottom right x
