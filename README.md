@@ -5,8 +5,8 @@
 - [Person Detection, Pose and Body Proportion Estimation](#person-detection-pose-and-body-proportion-estimation)
   - [Download model weights](#download-model-weights)
   - [Requirements](#requirements)
-    - [Build and run docker image for uvicorn server with fastAPI exposed and triton-server in the backend](#build-and-run-docker-image-for-uvicorn-server-with-fastapi-exposed-and-triton-server-in-the-backend)
-    - [Build and run docker image for triton-server only](#build-and-run-docker-image-for-triton-server-only)
+  - [1. Build and run docker image for uvicorn server with fastAPI exposed and triton-server in the backend](#1-build-and-run-docker-image-for-uvicorn-server-with-fastapi-exposed-and-triton-server-in-the-backend)
+  - [2. Build and run docker image for triton-server only](#2-build-and-run-docker-image-for-triton-server-only)
     - [Run triton-server container and test](#run-triton-server-container-and-test)
   - [CPU mode](#cpu-mode)
   - [Performance Benchmarking](#performance-benchmarking)
@@ -30,7 +30,12 @@ rm models.zip
 
 Tested with [Docker compose](https://docs.docker.com/compose/install/) version `v2.28.1`.
 
-### Build and run docker image for uvicorn server with fastAPI exposed and triton-server in the backend
+Two options:
+
+1. Run uvicorn server with fastAPI exposed and triton-server in the docker container
+2. Run triton-server container only and run server locally outside the container
+
+## 1. Build and run docker image for uvicorn server with fastAPI exposed and triton-server in the backend
 
 ```shell
 docker compose build uvi_trt_server
@@ -38,7 +43,11 @@ bash scripts/run_docker_uvicorn_fastapi_server.sh -h EXPOSED_HTTP_PORT # Wait fo
 # check localhost:EXPOSED_HTTP_PORT for fastapi page
 ```
 
-### Build and run docker image for triton-server only
+## 2. Build and run docker image for triton-server only
+
+```shell
+docker compose build trt_server
+```
 
 Use [poetry](https://python-poetry.org/) to install requirements (Recommended):
 
@@ -52,12 +61,6 @@ Or, use [pip](https://pip.pypa.io/en/stable/) to install requirements:
 python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
-```
-
-Build triton-server container
-
-```shell
-docker compose build trt_server
 ```
 
 ### Run triton-server container and test

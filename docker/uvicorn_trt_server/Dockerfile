@@ -1,14 +1,14 @@
-FROM nvcr.io/nvidia/tritonserver:24.01-py3
+FROM nvcr.io/nvidia/tritonserver:24.12-py3
 
 ENV CUDA_DEVICE_ORDER=PCI_BUS_ID
 ENV CUDA_VISIBLE_DEVICES=0
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 ENV WORKDIR="/cv_root"
 
 # install opencv reqs
 RUN apt-get update -y --no-install-recommends \
-    && apt-get install -y --no-install-recommends python3.10-venv ffmpeg libsm6 libxext6 vim \
+    && apt-get install -y --no-install-recommends python3-venv ffmpeg libsm6 libxext6 vim \
     && apt-get clean
 
 # remove cache

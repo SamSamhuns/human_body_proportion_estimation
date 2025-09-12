@@ -104,7 +104,7 @@ async def body_proportion_length_est_file(
     """
     response_data = {}
     try:
-        # send iamge directly to demo func as bytes
+        # send image directly to demo func as bytes
         file_bytes_content = file.file.read()
         input_data = InputModel(
             person_height=person_height_in_cm,
