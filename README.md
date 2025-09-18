@@ -68,7 +68,7 @@ pip install -r requirements.txt
 ```shell
 bash scripts/run_docker_triton_server.sh -p 8081 # 8081 is the exposed GRPC port. Wait for model loading (60s)
 # test to verify working container
-python human_body_length_est/person_det_pose_edet4_trtserver.py
+python human_body_length_est/person_det_pose_edet4_trtserver.py -i <MEDIA_PATH> -g <GRPC_SERVER_PORT>
 # to start the uvicorn server, default port is 8080
 PYTHONPATH="./human_body_length_est" python uvicorn_server/server.py [EXPOSED_HTTP_PORT]
 ```

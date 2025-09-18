@@ -66,6 +66,10 @@ class ModelProcessTask:
         else:
             self.response_data["msg"] = "human body proportion estimation complete"
             body_proportion_lengths = result[0][2]
+            body_proportion_lengths = {
+                k: float(v) for k, v in body_proportion_lengths.items()
+            }
+
         self.response_data["body_proportion_lengths_(cm)"] = body_proportion_lengths
 
         try:
