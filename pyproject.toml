@@ -9,17 +9,20 @@ license = {text = "Apache 2.0"}
 readme = "README.md"
 requires-python = ">=3.10,<3.12"
 dependencies = [
-    "fastapi (>=0.116.1,<0.117.0)",
+    "fastapi (>=0.129.0,<0.130.0)",
     "matplotlib (>=3.10.6,<4.0.0)",
     "onnxruntime (>=1.22.1,<2.0.0)",
     "opencv-python-headless (>=4.12.0.88,<5.0.0.0)",
-    "pillow (>=11.3.0,<12.0.0)",
-    "python-multipart (>=0.0.20,<0.0.21)",
+    "pillow (>=12.1.1,<13.0.0)",
+    "python-multipart (>=0.0.22,<0.0.23)",
     "requests (>=2.32.5,<3.0.0)",
-    "tritonclient[grpc] (>=2.60.0,<3.0.0)",
+    "tritonclient[grpc] (>=2.65.0,<3.0.0)",
     "uvicorn (>=0.35.0,<0.36.0)",
     "ruff (>=0.13.0,<0.14.0)",
-    "gdown (>=5.2.0,<6.0.0)"
+    "gdown (>=5.2.0,<6.0.0)",
+    "urllib3 (>=2.6.3,<3.0.0)",
+    "fonttools (>=4.61.1,<5.0.0)",
+    "filelock (>=3.24.3,<4.0.0)"
 ]
 
 
